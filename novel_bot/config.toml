@@ -1,0 +1,24 @@
+[ai_chat]
+google_api_proxy = "http://127.0.0.1:7897"
+
+[tts_services]
+chat_tts_api_url = "http://127.0.0.1:9966"
+huggingface_api_key = ""
+qwen_tts_model_id = "Qwen/Qwen-Audio"
+
+
+[google_cloud]
+service_account_key_path = ""
+developer_backup_bucket = "your-backup-bucket-name"
+
+[system]
+admin_user_ids = ["YOUR_ADMIN_USER_ID_HERE"]
+
+[database]
+db_type = "sqlite"
+
+[database.sqlite]
+path = "novel_bot/data/mynovelbot.db"
+
+[database.postgres]
+url = "postgresql+asyncpg://postgres:NovelBotDbPass123@localhost:5432/postgres"

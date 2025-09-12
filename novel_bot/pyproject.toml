@@ -1,0 +1,47 @@
+# novel_bot/pyproject.toml
+
+[project]
+name = "novel-bot-backend" # 可以改个更贴切的名字
+version = "0.2.0" # 版本升级
+description = "MyNovelBot backend."
+requires-python = ">=3.9, <4.0"
+
+dependencies = [
+    # 移除了 nonebot2 和 nonebot-adapter-onebot
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.29.0", # 添加 uvicorn 作为应用服务器
+    "httpx>=0.20.0",
+    "gmssl>=3.2.0",
+    "gradio-client>=0.10.0",
+    "Pillow>=9.0.0",
+    "beautifulsoup4",
+    "pypdf",
+    "openpyxl",
+    "ddgs",
+    "pytz",
+    "edge-tts>=6.1.9",
+    "passlib[bcrypt]>=1.7.4",
+    "python-multipart>=0.0.9",
+    "google-cloud-storage>=2.10.0",
+    "apscheduler>=3.10.0", # 使用原生 apscheduler
+    "sqlalchemy[asyncio]>=2.0.0",
+    "asyncpg>=0.29.0",
+    "alembic>=1.13.0",
+    "json5>=0.9.14",
+    # [核心修复] 添加 SQLAlchemy 连接 SQLite 所需的异步驱动
+    "aiosqlite>=0.20.0",
+    # [核心新增] 添加用于解析日期时间字符串的库
+    "python-dateutil>=2.9.0"
+]
+
+[tool.poetry]
+packages = [
+    { include = "main.py" }, # 主文件将改为 main.py
+    { include = "src" },
+]
+
+# 移除了 [tool.nonebot] 部分
+
+[tool.mypy]
+ignore_missing_imports = true
+exclude = ['\\.venv/']

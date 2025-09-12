@@ -1,0 +1,20 @@
+{
+  "name": "MyNovelBot",
+  "short_name": "NovelBot",
+  "description": "一个可高度定制的AI角色扮演聊天机器人项目",
+  "theme_color": "#1a202c",
+  "background_color": "#1a202c",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "type": "image/png"
+    }
+  ]
+}

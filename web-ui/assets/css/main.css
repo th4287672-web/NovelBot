@@ -1,0 +1,111 @@
+/* [核心修复] 使用标准的 @import 替换 @tailwind 指令。 */
+/* 这种方式为构建工具(Vite)提供了更明确的导入指令，可以避免路径解析错误， */
+/* 是解决资源无法加载问题的关键。 */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* 定义基础图层样式 */
+@layer base {
+  /* 这些样式用于开发时的视觉诊断，帮助确认CSS文件是否被正确加载。 */
+  html { background-color: red !important; height: 100%; }
+  body { background-color: green !important; height: 100%; }
+  #__nuxt { background-color: #111827 !important; height: 100%; }
+  
+  /* 定义全局CSS变量，用于统一的主题颜色。 */
+  :root {
+    --color-theme-cyan: #06b6d4;
+    --color-theme-purple: #8b5cf6;
+    --color-theme-yellow: #eab308;
+    --color-theme-green: #10b981;
+    --color-theme-gray: #9ca3af;
+    --color-theme-indigo: #6366f1;
+  }
+
+  /* 设置全局字体，提供优雅的回退方案。 */
+  html, body, #__nuxt {
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  }
+
+  /* 设置基础的页面背景色和文字颜色。 */
+  body {
+    @apply bg-gray-900 text-gray-200;
+  }
+  
+  /* 自定义全局滚动条样式，提升视觉一致性。 */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-gray-800/50; }
+  ::-webkit-scrollbar-thumb { @apply bg-gray-600 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-cyan-500; }
+}
+
+/* 定义组件图层样式 */
+@layer components {
+  /* 按钮基础样式，可通过组合其他类进行扩展。 */
+  .btn {
+    @apply px-5 py-2 text-sm rounded-sm font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2;
+  }
+  /* 主按钮样式 */
+  .btn-primary {
+    @apply text-white;
+  }
+  /* 次要按钮样式，通常用于取消或次级操作。 */
+  .btn-secondary {
+    @apply bg-transparent border border-gray-500 text-gray-300 hover:bg-gray-700;
+  }
+  /* 危险操作按钮样式，用于删除等警告性操作。 */
+  .btn-danger {
+    @apply bg-red-600 hover:bg-red-700 text-white;
+  }
+  /* 卡片容器的基础样式。 */
+  .archive-card {
+    @apply bg-[#1e2732] rounded-md border border-gray-600/80 shadow-2xl flex flex-col;
+  }
+  /* 卡片头部的样式。 */
+  .archive-header {
+    @apply p-4 bg-gray-800/50 flex justify-between items-center shrink-0;
+  }
+  /* 卡片标题的样式。 */
+  .archive-header-title {
+    @apply font-mono text-lg font-semibold tracking-wider;
+  }
+  /* 卡片主要内容区域的样式，带滚动条。 */
+  .archive-main {
+    @apply p-6 flex-grow max-h-[60vh] overflow-y-auto;
+  }
+  /* 卡片底部的样式，通常用于放置操作按钮。 */
+  .archive-footer {
+    @apply p-3 bg-gray-800/50 border-t border-gray-600/80 flex justify-end gap-3 shrink-0;
+  }
+  /* 输入框和文本域的统一外观。 */
+  .archive-input, .archive-textarea {
+    @apply w-full mt-1 bg-gray-700/60 rounded-sm border-2 border-gray-500/80 px-3 py-2 text-white transition-colors duration-200;
+    @apply focus:outline-none focus:bg-gray-700;
+  }
+  /* 表单标签的样式。 */
+  .archive-label {
+    @apply block text-sm font-medium text-gray-400 mb-1;
+  }
+  /* 拖拽元素时的视觉效果。 */
+  .dragging {
+    @apply opacity-50 scale-95;
+  }
+  /* 元素被拖拽悬停在其上时的视觉效果。 */
+  .drag-over {
+    @apply border-2 border-dashed border-cyan-500 bg-gray-700/50;
+  }
+  /* 一个用于诊断边框的通用样式。 */
+  .diag-border {
+    @apply relative transition-all duration-300;
+  }
+  .diag-border::before {
+    content: '';
+    @apply absolute -inset-px rounded-lg pointer-events-none;
+    @apply transition-all duration-300 opacity-0;
+    box-shadow: 0 0 0 1px var(--diag-color, theme('colors.gray.500'));
+  }
+  .diag-border:hover::before {
+    @apply opacity-70;
+    box-shadow: 0 0 8px 2px var(--diag-color, theme('colors.gray.500'));
+  }
+}

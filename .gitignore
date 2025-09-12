@@ -1,0 +1,81 @@
+# ================================================================
+# MyNovelBot .gitignore
+# 整理与优化 by 岐点
+# ================================================================
+
+# 1. Python 核心排除项
+# ----------------------------------------------------------------
+# 缓存与虚拟环境
+__pycache__/
+.venv/
+.mypy_cache/
+
+# 打包与安装产物
+*.png
+*.lnk
+*.1json
+*.pyc
+*.pyo
+*.pyd
+novel_bot.egg-info/
+novel_bot/src/novel_bot.egg-info/
+logs/
+backend_trace.log
+*.log
+user_configs.json
+web-ui/.output/
+web-ui/dist-stable/
+web-ui/dist/
+resources/
+
+# 运行时数据与日志
+novel_bot/logs/
+AI_Dev_Team/logs/
+tools/legacy_backup/
+.git/
+.github/
+governance/
+tools/validators/
+tools/perf/
+web-ui/.pnpm-store/
+
+# 2. 前端 (web-ui) 核心排除项
+# ----------------------------------------------------------------
+# 依赖项
+web-ui/node_modules/
+
+# 构建产物 (生产环境)
+# [核心修复] .output 是 Nuxt 3+ 的默认构建目录
+web-ui/dist/
+web-ui/.output/
+
+# Nuxt 自动生成目录 (开发与构建)
+# [核心优化] 此项涵盖了所有 .nuxt 内部的临时文件、类型定义和缓存
+web-ui/.nuxt/
+
+# 3. 通用开发与环境排除项
+# ----------------------------------------------------------------
+# 环境变量
+.env
+.env.*
+!.env.example
+
+# IDE / 编辑器特定文件
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Lagrange.OneBot 运行时数据
+lagrange/
+lagrange-*/
+
+# 操作系统特定文件
+.DS_Store
+Thumbs.db
+
+# 本地工具生成的文件
+project_code_snapshot.txt
+项目目录.txt
+file_list.txt
+*.log

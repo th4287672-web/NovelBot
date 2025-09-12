@@ -1,0 +1,52 @@
+{
+  "name": "mynovelbot-ui-nuxt",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "dev:clean": "nuxt dev --force",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "test:unit": "vitest",
+    "coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@nuxtjs/i18n": "^10.0.6",
+    "@pinia/nuxt": "^0.5.5",
+    "@tanstack/vue-query": "^5.49.1",
+    "@tanstack/vue-virtual": "^3.8.0",
+    "@vueuse/core": "^13.7.0",
+    "@vueuse/nuxt": "^13.9.0",
+    "axios": "^1.7.2",
+    "cropperjs": "^1.6.2",
+    "echarts": "latest",
+    "leaflet": "^1.9.4",
+    "pinia": "^2.1.7",
+    "uuid": "^10.0.0",
+    "vue-cropperjs": "^5.0.0",
+    "vue-draggable-next": "^2.2.1"
+  },
+  "devDependencies": {
+    "@nuxt/devtools": "latest",
+    "@nuxt/test-utils": "latest",
+    "@nuxtjs/eslint-config-typescript": "^12.1.0",
+    "@nuxtjs/tailwindcss": "^6.14.0",
+    "@tailwindcss/forms": "^0.5.7",
+    "@types/leaflet": "^1.9.20",
+    "@types/node": "^20.14.2",
+    "@types/uuid": "^10.0.0",
+    "@vite-pwa/nuxt": "^1.0.4",
+    "@vitest/coverage-v8": "latest",
+    "@vue/test-utils": "^2.4.6",
+    "jsdom": "^24.1.0",
+    "nuxt": "^4.1.0",
+    "prettier": "^3.3.2",
+    "vitest": "latest",
+    "vue-tsc": "latest"
+  }
+}
