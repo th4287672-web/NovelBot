@@ -74,6 +74,7 @@ import VueCropper from 'vue-cropperjs';
 import 'cropperjs/dist/cropper.css';
 import { useUIStore } from '~/stores/ui';
 import { processImageForUpload } from '~/utils/imageProcessor';
+import { getResourceUrl } from '~/utils/urlBuilder';
 
 const props = defineProps({
   imageUrl: { type: String as PropType<string | null>, default: null },
@@ -98,7 +99,7 @@ const cropperKey = ref(0);
 const imageAspectRatio = ref<number>(props.aspectRatio);
 
 const previewSrc = computed(() => {
-    const url = rawImageForCropper.value || props.imageUrl;
+    const url = rawImageForCropper.value || getResourceUrl({ image: props.imageUrl });
     return url === null ? undefined : url;
 });
 
@@ -140,7 +141,7 @@ const clearImage = () => {
 async function uploadFile(file: File | Blob) {
     isUploading.value = true;
     try {
-        const processedBlob = await processImageForUpload(file instanceof File ? file : new File([file], "image.webp", {type: "image.webp"}));
+        const processedBlob = await processImageForUpload(file instanceof File ? file : new File([file], "image.webp", {type: "image/webp"}));
         const newUrl = await props.uploadFunction(processedBlob);
         emit('update:imageUrl', newUrl);
         rawImageFile.value = null;

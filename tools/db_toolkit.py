@@ -9,10 +9,11 @@ from datetime import datetime
 import copy
 from typing import List, Dict, Any
 import toml
+import sqlite3
 
-from sqlalchemy import select, func, update, delete
+from sqlalchemy import select, func, update, delete, not_, text, inspect as sqlalchemy_inspect
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, class_mapper
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT / "novel_bot"))
@@ -24,6 +25,7 @@ CONFIG_PATH = PROJECT_ROOT / "novel_bot" / "config.toml"
 
 engine = None
 AsyncSessionLocal = None
+DB_CONFIG = {}
 
 class Colors:
     HEADER = '\033[95m'
@@ -42,24 +44,24 @@ def cprint(text: str, color: str = Colors.ENDC, bold: bool = False):
     print(f"{bold_code}{color}{text}{Colors.ENDC}")
 
 async def initialize_engine():
-    global engine, AsyncSessionLocal
+    global engine, AsyncSessionLocal, DB_CONFIG
     if not CONFIG_PATH.exists():
         raise FileNotFoundError(f"配置文件未找到: {CONFIG_PATH}")
     
     config_data = toml.load(CONFIG_PATH)
-    db_config = config_data.get("database", {})
-    db_type = os.environ.get("DB_TYPE", db_config.get("db_type", "sqlite"))
+    DB_CONFIG = config_data.get("database", {})
+    db_type = os.environ.get("DB_TYPE", DB_CONFIG.get("db_type", "sqlite"))
 
     db_url = ""
     if db_type == "sqlite":
-        sqlite_path_str = db_config.get("sqlite", {}).get("path", "novel_bot/data/mynovelbot.db")
+        sqlite_path_str = DB_CONFIG.get("sqlite", {}).get("path", "novel_bot/data/mynovelbot.db")
         sqlite_path = PROJECT_ROOT / sqlite_path_str
         if not sqlite_path.exists():
             raise FileNotFoundError(f"SQLite数据库文件未找到: {sqlite_path}")
         db_url = f"sqlite+aiosqlite:///{sqlite_path.resolve()}"
         cprint(f"检测到 SQLite 配置，正在连接: {sqlite_path.name}", Colors.GREEN)
     elif db_type == "postgres":
-        db_url = db_config.get("postgres", {}).get("url")
+        db_url = DB_CONFIG.get("postgres", {}).get("url")
         cprint(f"检测到 PostgreSQL 配置，正在连接...", Colors.GREEN)
     else:
         raise ValueError(f"不支持的数据库类型: {db_type}。请在 config.toml 中配置 'sqlite' 或 'postgres'。")
@@ -522,7 +524,6 @@ def view_task_detail(item: Task, breadcrumbs: str):
         print(f"{Colors.CYAN}{key_str}{Colors.ENDC} {value_str}")
     get_user_input("\n按任意键返回列表...")
 
-
 async def view_tools_menu(breadcrumbs: str = "工具与修复"):
     breadcrumbs = "工具与修复"
     while True:
@@ -533,6 +534,8 @@ async def view_tools_menu(breadcrumbs: str = "工具与修复"):
         
         cprint("\n--- 高级修复工具 ---", Colors.RED)
         print(f"[3] {Colors.RED}{Colors.BOLD}深度结构扫描与修复 (推荐){Colors.ENDC}")
+        print(f"[4] {Colors.RED}{Colors.BOLD}清理私有数据中的公共副本 (强力){Colors.ENDC}")
+        print(f"[5] {Colors.RED}{Colors.BOLD}斩断私有数据与公共数据的关联 (数据清洗){Colors.ENDC}")
 
         print("\n[b] 返回主菜单")
 
@@ -540,7 +543,105 @@ async def view_tools_menu(breadcrumbs: str = "工具与修复"):
         if choice == '1': await view_bulk_action_type_selection()
         elif choice == '2': await tool_sync_fields_by_type()
         elif choice == '3': await tool_data_integrity_scanner()
+        elif choice == '4': await tool_cleanup_private_public_duplicates()
+        elif choice == '5': await tool_sever_private_public_link()
         elif choice == 'b': return
+
+async def tool_sever_private_public_link():
+    breadcrumbs = "工具 > 斩断关联"
+    print_header("斩断私有数据与公共数据的关联", breadcrumbs)
+    cprint("此工具将查找所有与公共数据同名的私有数据，并将其永久删除。", Colors.YELLOW)
+    cprint("这是最彻底的数据清洗方式，用于解决深层的数据一致性问题。", Colors.YELLOW, bold=True)
+
+    async with AsyncSessionLocal() as session:
+        async with session.begin():
+            public_items_stmt = select(ContentItem.filename).where(ContentItem.owner_id.is_(None))
+            public_filenames = set((await session.execute(public_items_stmt)).scalars().all())
+            
+            cprint(f"\n已加载 {len(public_filenames)} 个公共项目文件名作为参照。", Colors.GREEN)
+
+            conflicting_private_items_stmt = select(ContentItem).where(
+                ContentItem.owner_id.isnot(None),
+                ContentItem.filename.in_(public_filenames)
+            )
+            items_to_delete = (await session.execute(conflicting_private_items_stmt)).scalars().all()
+
+            if not items_to_delete:
+                cprint("\n扫描完成：未发现任何与公共数据冲突的私有项目。", Colors.GREEN, bold=True)
+                get_user_input("\n按任意键返回...")
+                return
+            
+            cprint(f"\n扫描完成：发现 {len(items_to_delete)} 个需要被清理的冲突私有项目：", Colors.RED, bold=True)
+            table_rows = [
+                (item.id, item.owner_id[:8] + '...', item.data_type, item.filename) for item in items_to_delete
+            ]
+            print_table(["数据库ID", "所属用户", "类型", "文件名"], table_rows)
+            
+            if get_confirmation(f"您将从数据库中永久删除这 {len(items_to_delete)} 个冲突的私有项目。"):
+                for item in items_to_delete:
+                    await session.delete(item)
+                await session.commit()
+                cprint(f"\n操作完成！已成功删除 {len(items_to_delete)} 个冲突项目。", Colors.GREEN, bold=True)
+            else:
+                await session.rollback()
+                cprint("\n操作已取消。", Colors.YELLOW)
+
+    get_user_input("\n按任意键返回...")
+
+async def tool_cleanup_private_public_duplicates():
+    breadcrumbs = "工具 > 清理重复公共数据"
+    print_header("清理私有数据中的公共副本", breadcrumbs)
+    cprint("此工具将查找并删除所有用户私有数据中与系统公共数据同名的项目。", Colors.YELLOW)
+    cprint("这对于清理因数据迁移或导入错误产生的冗余数据非常有用。", Colors.YELLOW)
+
+    async with AsyncSessionLocal() as session:
+        async with session.begin():
+            public_items_stmt = select(ContentItem.data_type, ContentItem.filename).where(ContentItem.owner_id.is_(None))
+            public_items_result = await session.execute(public_items_stmt)
+            
+            public_filenames = {}
+            for dtype, fname in public_items_result.all():
+                if dtype not in public_filenames:
+                    public_filenames[dtype] = set()
+                public_filenames[dtype].add(fname)
+            
+            cprint(f"\n已加载 {sum(len(s) for s in public_filenames.values())} 个公共项目作为参照。", Colors.GREEN)
+
+            users_stmt = select(User.user_id)
+            user_ids = (await session.execute(users_stmt)).scalars().all()
+
+            private_items_stmt = select(ContentItem).where(
+                ContentItem.owner_id.isnot(None),
+                ContentItem.owner_id.in_(user_ids)
+            )
+            private_items = (await session.execute(private_items_stmt)).scalars().all()
+
+            items_to_delete = [
+                item for item in private_items
+                if item.data_type in public_filenames and item.filename in public_filenames[item.data_type]
+            ]
+
+            if not items_to_delete:
+                cprint("\n扫描完成：未发现任何与公共数据冲突的私有项目。", Colors.GREEN, bold=True)
+                get_user_input("\n按任意键返回...")
+                return
+            
+            cprint(f"\n扫描完成：发现 {len(items_to_delete)} 个待清理的私有项目：", Colors.RED, bold=True)
+            table_rows = [
+                (item.id, item.owner_id[:8] + '...', item.data_type, item.filename) for item in items_to_delete
+            ]
+            print_table(["数据库ID", "所属用户", "类型", "文件名"], table_rows)
+            
+            if get_confirmation(f"您将从数据库中永久删除这 {len(items_to_delete)} 个项目。"):
+                for item in items_to_delete:
+                    await session.delete(item)
+                await session.commit()
+                cprint(f"\n操作完成！已成功删除 {len(items_to_delete)} 个项目。", Colors.GREEN, bold=True)
+            else:
+                await session.rollback()
+                cprint("\n操作已取消。", Colors.YELLOW)
+
+    get_user_input("\n按任意键返回...")
 
 async def tool_sync_fields_by_type():
     breadcrumbs = "工具 > 字段同步"
@@ -915,11 +1016,66 @@ async def view_export_menu(breadcrumbs: str = "数据导出/诊断"):
     while True:
         print_header("数据导出/诊断", breadcrumbs)
         cprint("[1] 导出所有世界书 (原始JSON)", Colors.BLUE)
+        cprint("[2] 导出完整数据库快照 (JSON)", Colors.BLUE)
+        cprint("[3] 导出数据库结构 (骨架)", Colors.BLUE)
+        cprint("[4] 导出为独立文件 (用于重构)", Colors.BLUE)
         print("\n[b] 返回主菜单")
         
         choice = get_user_input()
         if choice == '1': await tool_export_all_world_info()
+        elif choice == '2': await tool_export_full_database_snapshot()
+        elif choice == '3': await tool_export_database_schema()
+        elif choice == '4': await tool_export_to_flat_files()
         elif choice == 'b': return
+
+async def tool_export_to_flat_files():
+    print_header("导出为独立文件 (用于重构)", "导出 > 独立文件")
+    cprint("此工具将所有内容项导出为独立JSON文件，模拟旧的文件系统结构。", Colors.YELLOW)
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    export_base_dir = PROJECT_ROOT / "tools" / f"flattened_export_{timestamp}"
+    
+    cprint(f"将要导出到: {export_base_dir}", Colors.CYAN)
+    if get_confirmation("此操作将读取整个 content_items 表并创建大量文件。"):
+        try:
+            export_base_dir.mkdir(parents=True, exist_ok=True)
+            public_count = 0
+            private_counts = {}
+
+            async with AsyncSessionLocal() as session:
+                items = (await session.execute(select(ContentItem))).scalars().all()
+                cprint(f"共找到 {len(items)} 个内容项待导出...", Colors.GREEN)
+
+                for item in items:
+                    data_to_write = item.data
+                    
+                    if item.owner_id is None: # 公共数据
+                        target_dir = export_base_dir / "public" / f"{item.data_type}s"
+                        public_count += 1
+                    else: # 私有数据
+                        target_dir = export_base_dir / "private" / item.owner_id / f"{item.data_type}s"
+                        if item.owner_id not in private_counts:
+                            private_counts[item.owner_id] = 0
+                        private_counts[item.owner_id] += 1
+                    
+                    target_dir.mkdir(parents=True, exist_ok=True)
+                    file_path = target_dir / f"{item.filename}.json"
+                    
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        json.dump(data_to_write, f, ensure_ascii=False, indent=2)
+
+            cprint("\n导出完成！", Colors.GREEN, bold=True)
+            cprint(f" - 成功导出 {public_count} 个公共文件。")
+            for user_id, count in private_counts.items():
+                cprint(f" - 成功为用户 {user_id[:8]}... 导出 {count} 个私有文件。")
+            cprint(f"\n文件已保存至:\n  {export_base_dir}", Colors.CYAN)
+
+        except Exception as e:
+            cprint(f"\n导出过程中发生错误: {e}", Colors.RED, bold=True)
+    else:
+        cprint("\n操作已取消。", Colors.YELLOW)
+
+    get_user_input("\n按任意键返回...")
 
 async def tool_export_all_world_info():
     print_header("导出所有世界书", "导出 > 世界书")
@@ -955,6 +1111,154 @@ async def tool_export_all_world_info():
 
     get_user_input("\n按任意键返回...")
     
+class CustomJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        if isinstance(obj, bytes):
+            return obj.decode('utf-8', errors='ignore')
+        if hasattr(obj, '__str__'):
+            try:
+                return str(obj)
+            except Exception:
+                pass
+        return super().default(obj)
+
+async def tool_export_full_database_snapshot():
+    print_header("导出完整数据库快照", "导出 > 完整快照")
+    cprint("正在动态扫描并导出所有数据库表...", Colors.YELLOW)
+    
+    full_db_data = {}
+    table_names = []
+    
+    db_type = DB_CONFIG.get("db_type", "sqlite")
+    
+    if db_type == "sqlite":
+        sqlite_path_str = DB_CONFIG.get("sqlite", {}).get("path", "novel_bot/data/mynovelbot.db")
+        db_path = PROJECT_ROOT / sqlite_path_str
+        if not db_path.exists():
+            cprint(f"错误: SQLite 文件未找到 at {db_path}", Colors.RED)
+            get_user_input("\n按任意键返回...")
+            return
+        
+        con = sqlite3.connect(db_path)
+        cursor = con.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        table_names = [row[0] for row in cursor.fetchall()]
+        con.close()
+    else:
+        async with engine.connect() as conn:
+            def get_table_names_sync(sync_conn):
+                inspector = sqlalchemy_inspect(sync_conn)
+                return inspector.get_table_names()
+            table_names = await conn.run_sync(get_table_names_sync)
+
+    cprint(f"发现 {len(table_names)} 个表: {', '.join(table_names)}", Colors.GREEN)
+    
+    async with engine.connect() as conn:
+        for table_name in table_names:
+            cprint(f"  - 正在导出表 '{table_name}'...", Colors.CYAN)
+            try:
+                result = await conn.execute(text(f'SELECT * FROM "{table_name}"'))
+                rows = result.mappings().all()
+                
+                processed_rows = []
+                for row in rows:
+                    row_dict = dict(row)
+                    for key, value in row_dict.items():
+                        if isinstance(value, str) and (key.endswith('data') or key.endswith('modules')):
+                             try:
+                                 row_dict[key] = json.loads(value)
+                             except (json.JSONDecodeError, TypeError):
+                                 pass
+                    processed_rows.append(row_dict)
+
+                full_db_data[table_name] = processed_rows
+                cprint(f"    ...成功导出 {len(rows)} 行数据。", Colors.GREY)
+            except Exception as e:
+                cprint(f"    ...导出表 '{table_name}' 失败: {e}", Colors.RED)
+
+
+    tools_dir = PROJECT_ROOT / "tools"
+    tools_dir.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    export_filename = f"full_db_snapshot_{timestamp}.json"
+    export_path = tools_dir / export_filename
+
+    try:
+        with open(export_path, 'w', encoding='utf-8') as f:
+            json.dump(full_db_data, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
+        
+        cprint(f"\n成功导出完整数据库快照！", Colors.GREEN, bold=True)
+        print(f"文件已保存至:")
+        cprint(f"  {export_path}", Colors.CYAN)
+    except Exception as e:
+        cprint(f"\n导出文件时发生错误: {e}", Colors.RED, bold=True)
+
+    get_user_input("\n按任意键返回...")
+
+async def tool_export_database_schema():
+    print_header("导出数据库结构", "导出 > 数据库结构")
+    cprint("正在动态扫描并导出所有表的结构...", Colors.YELLOW)
+    
+    db_schema = {}
+    table_names = []
+    
+    db_type = DB_CONFIG.get("db_type", "sqlite")
+    
+    if db_type == "sqlite":
+        sqlite_path_str = DB_CONFIG.get("sqlite", {}).get("path", "novel_bot/data/mynovelbot.db")
+        db_path = PROJECT_ROOT / sqlite_path_str
+        if not db_path.exists():
+            cprint(f"错误: SQLite 文件未找到 at {db_path}", Colors.RED)
+            get_user_input("\n按任意键返回...")
+            return
+        
+        con = sqlite3.connect(db_path)
+        cursor = con.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        table_names = [row[0] for row in cursor.fetchall()]
+        con.close()
+    else:
+        async with engine.connect() as conn:
+            def get_table_names_sync(sync_conn):
+                inspector = sqlalchemy_inspect(sync_conn)
+                return inspector.get_table_names()
+            table_names = await conn.run_sync(get_table_names_sync)
+    
+    cprint(f"发现 {len(table_names)} 个表: {', '.join(table_names)}", Colors.GREEN)
+
+    async with engine.connect() as conn:
+        def get_columns_sync(sync_conn, table_name):
+            inspector = sqlalchemy_inspect(sync_conn)
+            return inspector.get_columns(table_name)
+
+        for table_name in table_names:
+            cprint(f"  - 正在导出表 '{table_name}' 的结构...", Colors.CYAN)
+            try:
+                columns = await conn.run_sync(get_columns_sync, table_name)
+                db_schema[table_name] = columns
+            except Exception as e:
+                cprint(f"    ...导出表 '{table_name}' 结构失败: {e}", Colors.RED)
+
+    tools_dir = PROJECT_ROOT / "tools"
+    tools_dir.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    export_filename = f"db_schema_export_{timestamp}.json"
+    export_path = tools_dir / export_filename
+
+    try:
+        with open(export_path, 'w', encoding='utf-8') as f:
+            json.dump(db_schema, f, ensure_ascii=False, indent=2, cls=CustomJSONEncoder)
+        
+        cprint(f"\n成功导出数据库结构！", Colors.GREEN, bold=True)
+        print(f"文件已保存至:")
+        cprint(f"  {export_path}", Colors.CYAN)
+    except Exception as e:
+        cprint(f"\n导出文件时发生错误: {e}", Colors.RED, bold=True)
+    
+    get_user_input("\n按任意键返回...")
+
 
 async def main():
     try:

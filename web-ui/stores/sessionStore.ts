@@ -1,5 +1,3 @@
-// web-ui/stores/sessionStore.ts
-
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import type { Session, ChatMessage, Filename, SessionID } from '~/types/api';
@@ -23,8 +21,7 @@ export const useSessionStore = defineStore('session', () => {
     async function loadSessionsForCharacter(charFilename: Filename) {
         const settingsStore = useSettingsStore();
         const uiStore = useUIStore();
-        if (!settingsStore.userId) return;
-        if (settingsStore.isAnonymous) {
+        if (!settingsStore.userId || settingsStore.isAnonymous) {
             sessionsByChar.value[charFilename] = [];
             activeSessionId.value = null;
             messageHistoryCache.value = {};
@@ -45,9 +42,9 @@ export const useSessionStore = defineStore('session', () => {
             }
 
             if (targetSessionId) {
-                await setActiveSession(targetSessionId);
-            } else if (!settingsStore.isAnonymous) {
-                await createNewSession(charFilename);
+                await setActiveSession(targetSessionId, false);
+            } else {
+                activeSessionId.value = null;
             }
 
         } catch (error) {
@@ -55,12 +52,15 @@ export const useSessionStore = defineStore('session', () => {
         }
     }
 
-    async function setActiveSession(sessionId: SessionID) {
+    async function setActiveSession(sessionId: SessionID, persist: boolean = true) {
         if (activeSessionId.value === sessionId) return;
 
         activeSessionId.value = sessionId;
         const settingsStore = useSettingsStore();
-        await settingsStore.updateUserConfigValue('active_session_id', sessionId);
+        
+        if (persist && settingsStore.userConfig?.active_session_id !== sessionId) {
+            await settingsStore.updateUserConfigValue('active_session_id', sessionId);
+        }
         
         if (messageHistoryCache.value[sessionId] === undefined) {
             await loadHistoryForSession(sessionId);
@@ -169,7 +169,6 @@ export const useSessionStore = defineStore('session', () => {
                 sessionsByChar.value[charFilename] = [];
             }
             sessionsByChar.value[charFilename].unshift(newSession);
-            await setActiveSession(newSession.id);
             return newSession;
         } catch (error) {
             uiStore.setGlobalError(`为角色 '${charFilename}' 创建新会话失败: ${error}`);
@@ -233,7 +232,10 @@ export const useSessionStore = defineStore('session', () => {
                 if (remainingSessions.length > 0 && remainingSessions[0]) {
                     await setActiveSession(remainingSessions[0].id);
                 } else {
-                    await createNewSession(charFilename);
+                    const newSession = await createNewSession(charFilename);
+                    if (newSession) {
+                        await setActiveSession(newSession.id);
+                    }
                 }
             }
         } catch (error) {

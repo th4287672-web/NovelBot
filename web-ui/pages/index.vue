@@ -6,8 +6,14 @@
 </template>
 
 <script setup lang="ts">
-// [核心修复] 此页面现在只负责一件事：将用户重定向到核心聊天页面。
+import { useSessionStore } from '~/stores/sessionStore';
+import { storeToRefs } from 'pinia';
+
 onMounted(() => {
-  navigateTo('/chat', { replace: true });
+  const sessionStore = useSessionStore();
+  const { activeSessionId } = storeToRefs(sessionStore);
+
+  const route = activeSessionId.value ? `/chat/${activeSessionId.value}` : '/chat/new';
+  navigateTo(route, { replace: true });
 });
 </script>

@@ -1,25 +1,25 @@
 <template>
-  <div class="h-full w-full">
+  <CommonPageLayout>
+    <template #title>// 群聊场景管理</template>
+    <template #actions>
+      <div class="flex gap-4">
+        <div class="relative">
+          <input 
+            type="text" 
+            v-model="searchQuery" 
+            placeholder="搜索场景..." 
+            class="bg-gray-700/60 rounded-sm border-2 border-gray-500/80 px-3 py-2 text-white transition-colors duration-200 focus:outline-none focus:bg-gray-700 w-48 text-sm"
+          />
+        </div>
+        <button @click="openModal('create')" class="btn btn-primary bg-indigo-600 hover:bg-indigo-500">创建新场景</button>
+      </div>
+    </template>
+    
     <ManagementLayout
       :is-loading="!isReady"
       :is-empty="filteredGroups.length === 0 && !searchQuery"
-      @create="openModal('create')"
+      :is-contained="true"
     >
-      <template #title>// 群聊场景管理</template>
-      <template #create-button-content>
-        <div class="flex gap-4">
-          <div class="relative">
-            <input 
-              type="text" 
-              v-model="searchQuery" 
-              placeholder="搜索场景..." 
-              class="bg-gray-700/60 rounded-sm border-2 border-gray-500/80 px-3 py-2 text-white transition-colors duration-200 focus:outline-none focus:bg-gray-700 w-48 text-sm"
-            />
-          </div>
-          <button class="btn btn-primary bg-indigo-600 hover:bg-indigo-500">创建新场景</button>
-        </div>
-      </template>
-      
       <div v-if="filteredGroups.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         <div
           v-for="(group, index) in filteredGroups"
@@ -54,7 +54,7 @@
       @close="closeModal"
       @save="handleSaveGroup"
     />
-  </div>
+  </CommonPageLayout>
 </template>
 
 <script setup lang="ts">
@@ -65,6 +65,7 @@ import { useSettingsStore } from '~/stores/settings';
 import { useDisplayOrderMutation } from '~/composables/useDataMutations';
 import { useDraggable } from '~/composables/useDraggable';
 import type { Group } from '~/types/api';
+import CommonPageLayout from '~/components/common/PageLayout.vue';
 import ManagementLayout from '~/components/common/ManagementLayout.vue';
 import GroupCard from '~/components/group/GroupCard.vue';
 import GroupEditModal from '~/components/group/GroupEditModal.vue';

@@ -1,5 +1,3 @@
-# novel_bot/main.py
-
 import uvicorn
 import pathlib
 import os
@@ -35,8 +33,6 @@ app = FastAPI(title="MyNovelBot API", lifespan=lifespan)
 
 frontend_mode = os.environ.get("MYNOVELBOT_FRONTEND_MODE", "stable")
 
-# [!! 核心修改 !!] 将 CORS 配置移到所有模式下都生效的位置
-# 这样无论 dev 还是 stable 模式，都能正确处理跨域
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:8000", f"http://127.0.0.1:8000"],
@@ -68,5 +64,13 @@ if frontend_mode == 'stable':
         print(f"WARNING: Frontend directory for stable mode not found at {frontend_path}")
 
 if __name__ == "__main__":
-    # [!! 核心修改 !!] 将 host 从 '127.0.0.1' 改为 '0.0.0.0'
-    uvicorn.run("main:app", host="0.0.0.0", port=8080, reload=True)
+    current_dir = pathlib.Path(__file__).parent
+    reload_dirs = [str(current_dir / "src")]
+    
+    uvicorn.run(
+        "main:app", 
+        host="0.0.0.0", 
+        port=8080, 
+        reload=True,
+        reload_dirs=reload_dirs
+    )

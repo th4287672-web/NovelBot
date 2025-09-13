@@ -1,35 +1,33 @@
 <template>
-  <div class="h-full w-full">
+  <CommonPageLayout>
+    <template #title>// 角色卡管理</template>
+    <template #actions>
+      <div id="actions-wrapper" class="flex gap-4 items-center">
+          <div class="flex items-center bg-gray-700/60 rounded-md p-1">
+            <button @click="viewType = 'grid'" class="p-1.5 rounded-md transition-colors" :class="{'bg-cyan-600 text-white': viewType === 'grid'}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg></button>
+            <button @click="viewType = 'list'" class="p-1.5 rounded-md transition-colors" :class="{'bg-cyan-600 text-white': viewType === 'list'}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg></button>
+          </div>
+          <div class="relative">
+            <input 
+              type="text" 
+              v-model="searchQuery" 
+              placeholder="搜索角色..." 
+              class="bg-gray-700/60 rounded-sm border-2 border-gray-500/80 px-3 py-2 text-white transition-colors duration-200 focus:outline-none focus:bg-gray-700 w-48 text-sm"
+            />
+          </div>
+          <button @click.stop="isImportModalOpen = true" class="btn btn-secondary">导入默认</button>
+          <button @click="openModal('create')" class="btn btn-primary bg-cyan-600 hover:bg-cyan-500">创建新角色</button>
+      </div>
+    </template>
+    
     <ManagementLayout
       :is-loading="isLoading"
-      :is-empty="!data?.items.length && !searchQuery"
-      @create="openModal('create')"
+      :is-empty="!filteredCharacters.length && !searchQuery"
+      :is-contained="true"
     >
-      <template #title>// 角色卡管理</template>
-      <template #create-button-content>
-        <div class="flex gap-4 items-center">
-            <!-- [核心新增] 视图切换 -->
-            <div class="flex items-center bg-gray-700/60 rounded-md p-1">
-              <button @click="viewType = 'grid'" class="p-1.5 rounded-md transition-colors" :class="{'bg-cyan-600 text-white': viewType === 'grid'}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg></button>
-              <button @click="viewType = 'list'" class="p-1.5 rounded-md transition-colors" :class="{'bg-cyan-600 text-white': viewType === 'list'}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg></button>
-            </div>
-            <div class="relative">
-              <input 
-                type="text" 
-                v-model="searchQuery" 
-                placeholder="搜索角色..." 
-                class="bg-gray-700/60 rounded-sm border-2 border-gray-500/80 px-3 py-2 text-white transition-colors duration-200 focus:outline-none focus:bg-gray-700 w-48 text-sm"
-              />
-            </div>
-            <button @click.stop="isImportModalOpen = true" class="btn btn-secondary">导入默认</button>
-            <button class="btn btn-primary bg-cyan-600 hover:bg-cyan-500">创建新角色</button>
-        </div>
-      </template>
-      
-      <!-- [核心新增] 根据 viewType 切换布局 -->
-      <div v-if="data?.items.length" :class="viewType === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-3'">
+      <div v-if="filteredCharacters.length" :class="viewType === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-3'">
         <div
-          v-for="(char, index) in data.items"
+          v-for="(char, index) in filteredCharacters"
           :key="char.filename"
           class="relative transition-all"
           :draggable="true"
@@ -98,7 +96,8 @@
       data-type="character"
       @close="sharingCharacter = null"
     />
-  </div>
+    <CommonLayoutDiagnosisPopup :rect="rect" :is-enabled="isEnabled" />
+  </CommonPageLayout>
 </template>
 
 <script setup lang="ts">
@@ -110,6 +109,7 @@ import { useDisplayOrderMutation } from '~/composables/useDataMutations';
 import { useDraggable } from '~/composables/useDraggable';
 import { usePaginatedData } from '~/composables/useAllData';
 import type { Character, Filename, BackendCharacter } from '~/types/api';
+import CommonPageLayout from '~/components/common/PageLayout.vue';
 import ManagementLayout from '~/components/common/ManagementLayout.vue';
 import CharacterCard from '~/components/character/CharacterCard.vue';
 import CharacterListItem from '~/components/character/CharacterListItem.vue';
@@ -117,13 +117,17 @@ import CharacterEditModal from '~/components/character/CharacterEditModal.vue';
 import CommunityShareModal from '~/components/community/CommunityShareModal.vue';
 import { useStorage } from '@vueuse/core';
 import CommonPagination from '~/components/common/Pagination.vue';
+import { useLayoutDiagnosis } from '~/composables/useLayoutDiagnosis';
+import CommonLayoutDiagnosisPopup from '~/components/common/LayoutDiagnosisPopup.vue';
+
+const { rect, isEnabled } = useLayoutDiagnosis();
 
 const characterStore = useCharacterStore();
 const settingsStore = useSettingsStore();
 const { mutate: updateOrder } = useDisplayOrderMutation();
 
 const { importableCharacters } = storeToRefs(characterStore);
-const { activeCharacterKey, isReady } = storeToRefs(settingsStore);
+const { activeCharacterKey, userFullConfig } = storeToRefs(settingsStore);
 
 const isModalOpen = ref(false);
 const isImportModalOpen = ref(false);
@@ -133,18 +137,45 @@ const searchQuery = ref('');
 const sharingCharacter = ref<Character | null>(null);
 const viewType = useStorage<'grid' | 'list'>('mynovelbot-character-view', 'grid');
 
-// [核心重构] 分页状态
 const currentPage = ref(1);
 const itemsPerPage = ref(20);
 
 const { data, isLoading } = usePaginatedData<Character>('character', currentPage, itemsPerPage, searchQuery);
 
+const localOrderedCharacters = ref<Character[]>([]);
+
+const orderedCharactersComputed = computed(() => {
+  if (!data.value?.items) return [];
+  const order = userFullConfig.value?.display_order?.characters || [];
+  const allItems = data.value.items;
+  return [...allItems].sort((a, b) => {
+    const indexA = order.indexOf(a.filename);
+    const indexB = order.indexOf(b.filename);
+    if (indexA === -1 && indexB === -1) return (a.displayName || '').localeCompare(b.displayName || '');
+    if (indexA === -1) return 1;
+    if (indexB === -1) return -1;
+    return indexA - indexB;
+  });
+});
+
+watch(orderedCharactersComputed, (newList) => {
+  localOrderedCharacters.value = newList;
+}, { immediate: true });
+
+const filteredCharacters = computed(() => {
+  if (!searchQuery.value) {
+    return localOrderedCharacters.value;
+  }
+  return localOrderedCharacters.value.filter(c => 
+    c.displayName.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+    (c.description && c.description.toLowerCase().includes(searchQuery.value.toLowerCase()))
+  );
+});
+
 const { onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd } = useDraggable(
-  computed({
-    get: () => data.value?.items || [],
-    set: (newList) => { /* useDraggable will call the update callback */ }
-  }),
+  localOrderedCharacters,
   (newList) => { 
+    localOrderedCharacters.value = newList;
     const newOrder = newList.map(p => p.filename);
     updateOrder({ dataType: 'characters', order: newOrder });
   }

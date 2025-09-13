@@ -1,31 +1,11 @@
 <template>
-  <div class="flex flex-col items-center justify-center h-full text-gray-500">
+  <div class="flex flex-col items-center justify-center h-full w-full text-gray-500">
     <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
-    <p class="mt-4 text-lg">正在查找会话并跳转...</p>
+    <p class="mt-4 text-lg">正在准备聊天环境...</p>
   </div>
 </template>
 
 <script setup lang="ts">
-import { watch } from 'vue';
-import { useSessionStore } from '~/stores/sessionStore';
-import { useSettingsStore } from '~/stores/settings';
-import { storeToRefs } from 'pinia';
-
-const sessionStore = useSessionStore();
-const settingsStore = useSettingsStore();
-
-const { activeSessionId } = storeToRefs(sessionStore);
-const { isReady } = storeToRefs(settingsStore);
-
-watch(
-  () => [isReady.value, activeSessionId.value],
-  async ([ready, sessionId]) => {
-    // [优化] 增加一个检查，确保 sessionId 存在才跳转
-    if (ready && sessionId) {
-      await nextTick();
-      await navigateTo(`/chat/${sessionId}`, { replace: true });
-    }
-  }, 
-  { immediate: true }
-);
+// 这个页面的唯一职责就是存在，以便中间件可以拦截到 /chat 路由。
+// 所有的跳转逻辑现在都在 middleware/chat-redirect.global.ts 中处理。
 </script>

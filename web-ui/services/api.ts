@@ -8,7 +8,7 @@ import type {
   AvatarUploadResponse, DeleteAccountPayload, GenerationProfile, OptionsProfile, UsernameUpdatePayload, UsernameUpdateResponse,
   MessageActionType, PaginatedData,
   BootstrapResponse, CheckModelsResponse, TokenUsageStatsResponse, TaskSubmissionResponse, TaskStatusResponse,
-  GenerationProfiles, StoryPackageResponse
+  GenerationProfiles, StoryPackageResponse, ApiKey
 } from '~/types/api';
 
 function getApiClient(): AxiosInstance {
@@ -108,7 +108,7 @@ export const apiService = {
   getAllTasksForUser(userId: string, limit: number = 50, offset: number = 0): Promise<TaskStatusResponse[]> { return getApiClient().get(`/tasks/user/${userId}`, { params: { limit, offset } }); },
   
   // System
-  checkModels(userId: string): Promise<CheckModelsResponse> { return getApiClient().post('/system/check_models', { user_id: userId }); },
+  checkModels(userId: string, apiKeys?: ApiKey[]): Promise<CheckModelsResponse> { return getApiClient().post('/system/check_models', { user_id: userId, api_keys: apiKeys }); },
   getTokenUsageStats(userId: string): Promise<TokenUsageStatsResponse> { return getApiClient().get(`/system/token_usage_stats/${userId}`); },
   testApiKey(apiKey: string, proxyUrl?: string | null): Promise<{ status: string; message: string }> { return getApiClient().post('/system/test-api-key', { api_key: apiKey, proxy_url: proxyUrl }); },
   netCheck(proxyUrl?: string | null): Promise<{ status: string; message: string }> { return getApiClient().get('/system/net-check', { params: { proxy_url: proxyUrl } }); },

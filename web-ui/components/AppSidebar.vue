@@ -19,7 +19,7 @@
         <NuxtLink
           v-for="item in navItems.main"
           :key="item.path"
-          :to="item.path"
+          :to="item.path === '/chat' ? chatLink : item.path"
           class="flex items-center p-3 rounded-lg text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
           active-class="bg-cyan-700 text-white font-semibold"
           :title="item.name"
@@ -81,16 +81,23 @@ import { computed } from 'vue';
 import { useUIStore } from '~/stores/ui';
 import { useSettingsStore } from '~/stores/settings';
 import { useTaskStore } from '~/stores/taskStore';
+import { useSessionStore } from '~/stores/sessionStore';
 import { storeToRefs } from 'pinia';
 import { getResourceUrl } from '~/utils/urlBuilder';
 
 const uiStore = useUIStore();
 const settingsStore = useSettingsStore();
 const taskStore = useTaskStore();
+const sessionStore = useSessionStore();
 const { persistentState } = storeToRefs(uiStore);
+const { activeSessionId } = storeToRefs(sessionStore);
 
 const activeTaskCount = computed(() => {
     return Object.values(taskStore.tasks).filter(t => t.status === 'processing').length;
+});
+
+const chatLink = computed(() => {
+  return activeSessionId.value ? `/chat/${activeSessionId.value}` : '/chat/new';
 });
 
 const navItems = {
@@ -102,7 +109,6 @@ const navItems = {
     { name: '世界书', path: '/worlds', icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h10a2 2 0 002-2v-1a2 2 0 012-2h1.945M7.737 16.525l.41-1.025a1 1 0 011.696 0l.41 1.025a1 1 0 001.218.665l1.026-.41a1 1 0 011.085 1.085l-.41 1.026a1 1 0 00.665 1.218l1.025.41a1 1 0 010 1.696l-1.025.41a1 1 0 00-.665 1.218l.41 1.026a1 1 0 01-1.085-1.085l-1.026-.41a1 1 0 00-1.218.665l-.41 1.025a1 1 0 01-1.696 0l-.41-1.025a1 1 0 00-1.218-.665l-1.026.41a1 1 0 01-1.085-1.085l.41-1.026a1 1 0 00-.665-1.218l-1.025-.41a1 1 0 010-1.696l1.025.41a1 1 0 00.665-1.218l-.41-1.026a1 1 0 011.085-1.085l1.026.41a1 1 0 001.218.665z" /></svg>` },
     { name: '预设', path: '/presets', icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>` },
     { name: '工具箱', path: '/tools', icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>` },
-    { name: '运行设置', path: '/run-settings', icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 16v-2m0-8v-2m0 12V10m6 6h2m-16 0h2m8 0h2M4 12H2m16 0h2M12 8a2 2 0 100-4 2 2 0 000 4zm0 12a2 2 0 100-4 2 2 0 000 4zm8-6a2 2 0 100-4 2 2 0 000 4zm-16 0a2 2 0 100-4 2 2 0 000 4z" /></svg>` },
   ],
   tasks: { name: '任务中心', path: '/tasks', icon: `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>` },
   footer: [

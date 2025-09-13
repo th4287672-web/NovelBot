@@ -36,7 +36,6 @@ export const useSettingsStore = defineStore('settings', () => {
   const queryClient = useQueryClient()
   const uiStore = useUIStore()
   
-  // [核心优化] userId 和 userInfo 的管理逻辑简化
   const storedUserId = useStorage<string | null>('mynovelbot_user_id', null)
   const storedUserInfo = useStorage<UserInfo | null>('mynovelbot_user_info', null)
   
@@ -47,12 +46,16 @@ export const useSettingsStore = defineStore('settings', () => {
     top_k: 40,
     max_output_tokens: 4096,
   });
+  
+  let resolveHydration: () => void;
+  const hydrationPromise = new Promise<void>(resolve => {
+    resolveHydration = resolve;
+  });
 
   const ANONYMOUS_USER_ID = 'anonymous-user'
   const userId = computed(() => storedUserId.value || ANONYMOUS_USER_ID)
   const isAnonymous = computed(() => userId.value === ANONYMOUS_USER_ID)
 
-  // [核心优化] 将 useBootstrapQuery 作为 store 内部的单一数据源
   const bootstrapQuery = useBootstrapQuery();
 
   const tokenUsageQuery = useQuery({
@@ -65,11 +68,9 @@ export const useSettingsStore = defineStore('settings', () => {
     staleTime: 1000 * 60 * 5,
   })
   
-  // [核心优化] isReady 和 isInitializing 直接派生自 query 的状态
   const isReady = computed(() => bootstrapQuery.isSuccess.value)
   const isInitializing = computed(() => bootstrapQuery.isLoading.value)
 
-  // [核心优化] 所有配置项都从 bootstrapQuery 的 data 中派生
   const userConfig = computed(() => bootstrapQuery.data.value?.user_config || null)
   const userFullConfig = computed(() => bootstrapQuery.data.value?.user_config as UserConfig | null)
   
@@ -79,10 +80,8 @@ export const useSettingsStore = defineStore('settings', () => {
   const modelStatus = ref<ModelStatus>('unchecked')
   const verifiedModels = ref<ModelDetails[]>([])
 
-  // [核心优化] 监听 query 数据变化来更新内部状态
   watch(bootstrapQuery.data, (newData) => {
     if (newData) {
-      // 保持 userInfo 的本地存储同步
       if (newData.user_info) {
         storedUserInfo.value = newData.user_info
       } else if (isAnonymous.value) {
@@ -95,6 +94,8 @@ export const useSettingsStore = defineStore('settings', () => {
         verifiedModels.value = newData.system_status.verified_models || []
         modelStatus.value = newData.system_status.model_is_ready ? 'connected' : 'unchecked'
       }
+      
+      resolveHydration();
     }
   }, { deep: true, immediate: true })
 
@@ -109,7 +110,6 @@ export const useSettingsStore = defineStore('settings', () => {
         storedUserInfo.value = null
         hasCompletedOnboarding.value = false;
       }
-      // [代码注释] userId 变化会触发 useBootstrapQuery 的 queryKey 变化，自动重新获取数据。
     }
   }
 
@@ -119,25 +119,12 @@ export const useSettingsStore = defineStore('settings', () => {
   
   function updateUserInfo(info: UserInfo) {
     setUserInfo(info);
-    // [代码注释] 手动更新缓存中的 user_info，避免不必要的 bootstrap 重载
     queryClient.setQueryData<BootstrapResponse | undefined>(
       [BOOTSTRAP_QUERY_KEY, userId.value], 
       (old) => old ? { ...old, user_info: info } : undefined
     );
   }
 
-  // [核心优化] 所有更新操作都通过一个统一的函数，返回一个 Promise
-  async function updateUserConfigValue<K extends keyof UserConfig>(key: K, value: UserConfig[K]): Promise<void> {
-    const currentConfig = userFullConfig.value;
-    if (!userId.value || isAnonymous.value || !currentConfig) {
-      throw new Error("用户配置数据尚未加载，无法更新。");
-    }
-    const newConfig: UserConfig = { ...currentConfig, [key]: value };
-    await apiService.updateUserConfig(userId.value, newConfig);
-    // [代码注释] 更新成功后，让 bootstrap query 失效，自动在后台重新获取最新配置。
-    await queryClient.invalidateQueries({ queryKey: [BOOTSTRAP_QUERY_KEY, userId.value] });
-  }
-  
   async function updateMultipleUserConfigValues(updates: Partial<UserConfig>): Promise<void> {
     const currentConfig = userFullConfig.value;
     if (!userId.value || isAnonymous.value || !currentConfig) {
@@ -148,6 +135,10 @@ export const useSettingsStore = defineStore('settings', () => {
     await queryClient.invalidateQueries({ queryKey: [BOOTSTRAP_QUERY_KEY, userId.value] });
   }
 
+  async function updateUserConfigValue<K extends keyof UserConfig>(key: K, value: UserConfig[K]): Promise<void> {
+    await updateMultipleUserConfigValues({ [key]: value });
+  }
+  
   async function updateLLMServiceConfig(config: LLMServiceConfig) {
       await updateUserConfigValue('llm_service_config', config);
   }
@@ -184,26 +175,26 @@ export const useSettingsStore = defineStore('settings', () => {
     setUserId(ANONYMOUS_USER_ID)
   }
 
-  async function checkModels() {
-    if (!userId.value || isAnonymous.value) return
-    modelStatus.value = 'checking'
+  async function checkModels(keys?: ApiKey[]) {
+    if (!userId.value || isAnonymous.value) return;
+    modelStatus.value = 'checking';
     try {
-      const response = await apiService.checkModels(userId.value)
-      verifiedModels.value = response.models
-      modelStatus.value = 'connected'
-      // [代码注释] 将检查结果更新到 bootstrap 缓存中，保持数据一致
+      const payload = { user_id: userId.value, api_keys: keys };
+      const response = await apiService.checkModels(payload.user_id, payload.api_keys);
+      verifiedModels.value = response.models;
+      modelStatus.value = 'connected';
       queryClient.setQueryData<BootstrapResponse | undefined>(
         [BOOTSTRAP_QUERY_KEY, userId.value],
         (old) => old ? { ...old, system_status: { ...old.system_status, model_is_ready: true, verified_models: response.models } } : undefined
-      )
+      );
     } catch (error) {
-      modelStatus.value = 'failed'
-      verifiedModels.value = []
+      modelStatus.value = 'failed';
+      verifiedModels.value = [];
       queryClient.setQueryData<BootstrapResponse | undefined>(
         [BOOTSTRAP_QUERY_KEY, userId.value],
         (old) => old ? { ...old, system_status: { ...old.system_status, model_is_ready: false, verified_models: [] } } : undefined
-      )
-      throw error
+      );
+      throw error;
     }
   }
 
@@ -245,7 +236,6 @@ export const useSettingsStore = defineStore('settings', () => {
       }
   }
 
-  // [代码注释] 所有导出的 computed 属性都直接从 Vue Query 的缓存数据中派生，确保了单一数据源。
   return {
     userId,
     userInfo: computed(() => storedUserInfo.value),
@@ -258,6 +248,7 @@ export const useSettingsStore = defineStore('settings', () => {
     modelStatus,
     verifiedModels,
     generationConfig,
+    hydrationPromise,
     setUserId,
     setUserInfo,
     updateUserInfo,

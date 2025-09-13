@@ -23,15 +23,15 @@ echo.
 echo   请选择需要执行的清理任务 (可多选, 例如: 1,3):
 echo.
 echo   --- 推荐流程 ---
-echo   清理 pnpm 全局缓存 (安全模式, 推荐)
+echo   [1] 清理 pnpm 全局缓存 (安全模式, 推荐)
 echo.
 echo   --- 项目内清理 ---
-echo   清理 MyNovelBot 根目录 (项目级 node_modules)
-echo   清理 web-ui (前端缓存和依赖)
-echo   清理 novel_bot (后端缓存、依赖和锁定文件)
+echo   [2] 清理 MyNovelBot 根目录 (项目级 node_modules)
+echo   [3] 清理 web-ui (前端缓存和依赖)
+echo   [4] 清理 novel_bot (后端缓存、依赖和锁定文件)
 echo.
 echo   --- 高级/危险选项 ---
-echo   彻底删除 pnpm 全局执行缓存 (核弹级!)
+echo   [5] 彻底删除 pnpm 全局执行缓存 (核弹级!)
 echo.
 echo   --- 组合方案 ---
 echo   [A] 一键执行安全清理 (推荐组合: 1,2,3,4)

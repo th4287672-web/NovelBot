@@ -1,89 +1,88 @@
 <template>
-  <div class="h-full w-full flex flex-col">
-    <header class="p-3 border-b border-gray-700 bg-gray-800/50 shrink-0">
-      <h1 class="text-xl font-semibold text-gray-200 text-center">工具箱</h1>
-    </header>
-    
-    <CommonTabbedContent :tabs="tabs" initial-tab="rules" theme-color="indigo" class="flex-grow min-h-0">
-      
-      <template #rules>
-        <div class="h-full w-full p-6 flex gap-6 overflow-hidden">
-          <div class="w-1/2 h-full flex flex-col">
-            <ManagementLayout
-              :is-loading="!isReady"
-              :is-empty="false"
-              @create="openModal()"
-              :is-contained="true"
-            >
-              <template #title>// 渲染规则管理</template>
-              <template #create-button-content>
-                <div class="flex gap-4">
-                  <button @click.stop="isImportModalOpen = true" class="btn btn-secondary">导入默认</button>
-                  <button class="btn btn-primary bg-indigo-600 hover:bg-indigo-500">
-                    添加新规则
-                  </button>
-                </div>
-              </template>
-              
-              <div class="space-y-3 h-full overflow-y-auto pr-2">
-                <div 
-                  v-for="(rule, index) in localRules" 
-                  :key="rule.id"
-                  class="p-3 bg-gray-800/60 rounded-md border border-gray-700 flex items-center justify-between transition-all"
-                  :draggable="true"
-                  @dragstart="onDragStart($event, index)"
-                  @dragover.prevent="onDragOver($event)"
-                  @dragleave="onDragLeave($event)"
-                  @drop="onDrop($event, index)"
-                  @dragend="onDragEnd($event)"
-                >
-                  <div class="flex items-center min-w-0">
-                    <div class="drag-handle cursor-grab text-gray-500 hover:text-white mr-3 shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12a2 2 0 100-4 2 2 0 000 4zM12 10a2 2 0 11-4 0 2 2 0 014 0zM17 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
+  <CommonPageLayout>
+    <template #title>// 工具箱</template>
+    <div class="h-full w-full">
+      <CommonTabbedContent :tabs="tabs" initial-tab="rules" theme-color="indigo" class="h-full">
+        
+        <template #rules>
+          <div class="h-full w-full p-6 flex gap-6 overflow-hidden">
+            <div class="w-1/2 h-full flex flex-col">
+              <ManagementLayout
+                :is-loading="!isReady"
+                :is-empty="false"
+                @create="openModal()"
+                :is-contained="true"
+              >
+                <template #title>// 渲染规则管理</template>
+                <template #create-button-content>
+                  <div class="flex gap-4">
+                    <button @click.stop="isImportModalOpen = true" class="btn btn-secondary">导入默认</button>
+                    <button class="btn btn-primary bg-indigo-600 hover:bg-indigo-500">
+                      添加新规则
+                    </button>
+                  </div>
+                </template>
+                
+                <div class="space-y-3 h-full overflow-y-auto pr-2">
+                  <div 
+                    v-for="(rule, index) in localRules" 
+                    :key="rule.id"
+                    class="p-3 bg-gray-800/60 rounded-md border border-gray-700 flex items-center justify-between transition-all"
+                    :draggable="true"
+                    @dragstart="onDragStart($event, index)"
+                    @dragover.prevent="onDragOver($event)"
+                    @dragleave="onDragLeave($event)"
+                    @drop="onDrop($event, index)"
+                    @dragend="onDragEnd($event)"
+                  >
+                    <div class="flex items-center min-w-0">
+                      <div class="drag-handle cursor-grab text-gray-500 hover:text-white mr-3 shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 12a2 2 0 100-4 2 2 0 000 4zM12 10a2 2 0 11-4 0 2 2 0 014 0zM17 12a2 2 0 100-4 2 2 0 000 4z" /></svg>
+                      </div>
+                      <span 
+                        class="w-4 h-4 rounded-full mr-4 shrink-0"
+                        :class="rule.enabled ? 'bg-green-500' : 'bg-gray-600'"
+                        :title="rule.enabled ? '已启用' : '已禁用'"
+                      ></span>
+                      <span class="font-semibold text-white truncate">{{ rule.name }}</span>
                     </div>
-                    <span 
-                      class="w-4 h-4 rounded-full mr-4 shrink-0"
-                      :class="rule.enabled ? 'bg-green-500' : 'bg-gray-600'"
-                      :title="rule.enabled ? '已启用' : '已禁用'"
-                    ></span>
-                    <span class="font-semibold text-white truncate">{{ rule.name }}</span>
-                  </div>
-                  <div class="flex items-center space-x-3">
-                    <button @click="openModal(rule)" class="btn btn-secondary !px-3 !py-1 text-xs">编辑</button>
-                    <button @click="removeRule(index)" class="btn btn-danger !px-3 !py-1 text-xs">删除</button>
+                    <div class="flex items-center space-x-3">
+                      <button @click="openModal(rule)" class="btn btn-secondary !px-3 !py-1 text-xs">编辑</button>
+                      <button @click="removeRule(index)" class="btn btn-danger !px-3 !py-1 text-xs">删除</button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </ManagementLayout>
+              </ManagementLayout>
+            </div>
+
+            <div class="w-1/2 h-full">
+                <GlobalPreview :rules="localRules" />
+            </div>
           </div>
+        </template>
 
-          <div class="w-1/2 h-full">
-              <GlobalPreview :rules="localRules" />
-          </div>
-        </div>
-      </template>
+        <template #story_weaver>
+          <ToolsStoryWeaver />
+        </template>
 
-      <template #story_weaver>
-        <ToolsStoryWeaver />
-      </template>
+        <template #drawing>
+          <ToolsDrawingTool />
+        </template>
 
-      <template #drawing>
-        <ToolsDrawingTool />
-      </template>
+        <template #tts>
+          <ToolsTtsTool />
+        </template>
 
-      <template #tts>
-        <ToolsTtsTool />
-      </template>
+        <template #data>
+          <ToolsDataCenter />
+        </template>
 
-      <template #data>
-        <ToolsDataCenter />
-      </template>
+        <template #community>
+          <ToolsCommunityHub />
+        </template>
 
-      <template #community>
-        <ToolsCommunityHub />
-      </template>
-
-    </CommonTabbedContent>
+      </CommonTabbedContent>
+    </div>
     
     <ClientOnly>
         <ToolsRegexRuleModal
@@ -103,7 +102,7 @@
             @import="handleImport"
         />
     </ClientOnly>
-  </div>
+  </CommonPageLayout>
 </template>
 
 <script setup lang="ts">
@@ -115,13 +114,13 @@ import { useDraggable } from '~/composables/useDraggable';
 import type { RegexRule } from '~/types/api';
 import { v4 as uuidv4 } from 'uuid';
 import { deepClone } from '~/utils/helpers';
+import CommonPageLayout from '~/components/common/PageLayout.vue';
 import ManagementLayout from '~/components/common/ManagementLayout.vue';
 import ToolsRegexRuleModal from '~/components/tools/RegexRuleModal.vue';
 import GlobalPreview from '~/components/tools/GlobalPreview.vue';
 import CommonTabbedContent from '~/components/common/TabbedContent.vue';
 import ToolsStoryWeaver from '~/components/tools/StoryWeaver.vue';
 import ToolsCommunityHub from '~/components/tools/CommunityHub.vue';
-
 
 const settingsStore = useSettingsStore();
 const uiStore = useUIStore();

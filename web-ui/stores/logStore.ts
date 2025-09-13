@@ -1,4 +1,3 @@
-// web-ui/stores/logStore.ts
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
@@ -15,10 +14,6 @@ export const useLogStore = defineStore('log', () => {
   let logCounter = 0;
 
   function addLog(level: LogEntry['level'], args: any[]) {
-    if (logs.value.length > 500) {
-      logs.value.shift(); // 保持日志数组大小，防止内存溢出
-    }
-    
     const message = args.map(arg => {
         try {
             if (arg instanceof Error) {

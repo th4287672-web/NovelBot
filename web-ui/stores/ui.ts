@@ -19,12 +19,22 @@ export const useUIStore = defineStore('ui', () => {
   
   const persistentState = usePersistentState();
   
-  // [核心新增] 控制运行设置面板的状态
   const isRunSettingsPanelOpen = ref(false);
 
-  function setGlobalError(message: string | null) {
+  let errorTimer: number | null = null;
+
+  function setGlobalError(message: string | null, timeout: number = 5000) {
+    if (errorTimer) {
+      clearTimeout(errorTimer);
+    }
     globalError.value = message;
-    if (message) { setTimeout(() => { if (globalError.value === message) { globalError.value = null; } }, 5000); }
+    if (message) {
+      errorTimer = window.setTimeout(() => {
+        if (globalError.value === message) {
+          globalError.value = null;
+        }
+      }, timeout);
+    }
   }
   
   const toggleSidebar = () => { persistentState.value.isSidebarCollapsed = !persistentState.value.isSidebarCollapsed; };
@@ -42,7 +52,6 @@ export const useUIStore = defineStore('ui', () => {
     return persistentState.value.collapsedSidebarSections.includes(sectionId);
   }
   
-  // [核心新增] 切换运行设置面板的 Action
   function toggleRunSettingsPanel() {
     isRunSettingsPanelOpen.value = !isRunSettingsPanelOpen.value;
   }
@@ -52,11 +61,11 @@ export const useUIStore = defineStore('ui', () => {
     isStreamingEnabled,
     isAutoScrollEnabled,
     persistentState,
-    isRunSettingsPanelOpen, // 导出状态
+    isRunSettingsPanelOpen,
     setGlobalError,
     toggleSidebar,
     toggleSidebarSection,
     isSidebarSectionCollapsed,
-    toggleRunSettingsPanel, // 导出方法
+    toggleRunSettingsPanel,
   };
 });

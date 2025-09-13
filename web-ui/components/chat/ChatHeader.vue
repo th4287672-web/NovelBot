@@ -1,9 +1,7 @@
 <template>
   <div class="p-3 border-b border-gray-700 bg-gray-800/50 flex items-center justify-between relative shrink-0">
-    <!-- 左侧空白占位，用于平衡布局 -->
     <div class="w-1/4"></div>
 
-    <!-- 中间：会话标题 -->
     <button 
       @click="isModalOpen = true" 
       class="text-center hover:bg-gray-700 p-2 rounded-md transition-colors w-1/2"
@@ -15,6 +13,9 @@
       <p v-if="activeSession" class="text-xs text-gray-400 mt-1 truncate">
         {{ activeSession.title }}
       </p>
+      <p v-else-if="isReady && activeCharacter" class="text-xs text-gray-500 mt-1 animate-pulse">
+        正在加载会话...
+      </p>
       <p v-else-if="isReady && !activeCharacter" class="text-lg font-semibold text-gray-500">
         请选择一个角色开始聊天
       </p>
@@ -23,7 +24,6 @@
       </p>
     </button>
     
-    <!-- 右侧：运行设置按钮 -->
     <div class="w-1/4 flex justify-end">
         <button 
             @click="uiStore.toggleRunSettingsPanel"
@@ -52,14 +52,14 @@ import { storeToRefs } from 'pinia';
 import { useCharacterStore } from '~/stores/characterStore';
 import { useSessionStore } from '~/stores/sessionStore';
 import { useSettingsStore } from '~/stores/settings';
-import { useUIStore } from '~/stores/ui'; // [核心新增]
+import { useUIStore } from '~/stores/ui';
 import SessionSelectionModal from './SessionSelectionModal.vue';
 import type { SessionID, Filename } from '~/types/api';
 
 const characterStore = useCharacterStore();
 const sessionStore = useSessionStore();
 const settingsStore = useSettingsStore();
-const uiStore = useUIStore(); // [核心新增]
+const uiStore = useUIStore();
 const router = useRouter();
 
 const { activeCharacter } = storeToRefs(characterStore);
@@ -90,7 +90,7 @@ async function handleSelectSession(payload: { characterFilename: Filename, sessi
     await sessionStore.setActiveSession(payload.sessionId);
   }
   
-  router.push(`/chat/${payload.sessionId}`);
+  await router.replace(`/chat/${payload.sessionId}`);
 }
 
 async function handleCreateNewSession(characterFilename: Filename) {
@@ -102,7 +102,7 @@ async function handleCreateNewSession(characterFilename: Filename) {
   
   const newSession = await sessionStore.createNewSession(characterFilename);
   if (newSession) {
-    router.push(`/chat/${newSession.id}`);
+    await router.replace(`/chat/${newSession.id}`);
   }
 }
 </script>

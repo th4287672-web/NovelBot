@@ -1,0 +1,566 @@
+{
+  "name": "高级角色扮演 - 最终版 (唯一ID)",
+  "description": "用于高级角色扮演，提供使用类似 Post-History Instruction 方式控制的 {{user}} 身份、参与方式、AI 身份，以及 {{char}} 和 NPCs 的视角。同时避免群组角色扮演时的混淆。包含所有原始字段，但不直接使用，并确保identifier的唯一性。",
+  "chat_completion_source": "makersuite",
+  "openai_model": "gpt-3.5-turbo",
+  "temperature": 0.7,
+  "frequency_penalty": 0.0,
+  "presence_penalty": 0.0,
+  "top_p": 0.6,
+  "top_k": 30,
+  "repetition_penalty": 1.1,
+  "openai_max_context": 200000,
+  "openai_max_tokens": 8092,
+  "wrap_in_quotes": false,
+  "names_behavior": 0,
+  "send_if_empty": "",
+  "jailbreak_system": false,
+  "impersonation_prompt": "[Write your next reply from the point of view of {{user}}, using the chat history so far as a guideline for the writing style of {{user}}. Don't write as {{char}} or system. Don't describe actions of {{char}}.]",
+  "new_chat_prompt": "[Start a new Chat]",
+  "new_group_chat_prompt": "[Start a new group chat. Group members: {{group}}]",
+  "new_example_chat_prompt": "[Example Chat]",
+  "continue_nudge_prompt": "[Continue the following message. Do not include ANY parts of the original message. Use capitalization and punctuation as if your reply is a part of the original message:{{lastChatMessage}}]",
+  "bias_preset_selected": "Default (none)",
+  "max_context_unlocked": true,
+  "wi_format": "[Details of the fictional world the RP is set in:\n{0}]",
+  "scenario_format": "[Circumstances and context of the dialogue: {{scenario}}]",
+  "personality_format": "[{{char}}'s personality: {{personality}}]",
+  "group_nudge_prompt": "[Write the next reply only as {{char}}.]",
+  "stream_openai": false,
+  "model": {
+    "api_url": "你的API地址",
+    "model_name": "你的模型名称",
+    "parameters": {}
+  },
+  "prompts": [
+    {
+      "name": "主提示词",
+      "system_prompt": true,
+      "role": "system",
+      "content": "你是一个角色扮演助手，你必须严格扮演当前角色卡的角色，并且不能扮演其他角色卡的角色。你当前的角色是 {{char.name}}。",
+      "identifier": "main_prompt_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": true
+    },
+    {
+      "name": "World Info (before)",
+      "system_prompt": true,
+      "role": "system",
+      "content": "[Content Placeholder]",
+      "identifier": "worldInfoBefore_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": true
+    },
+    {
+      "name": "Persona Description",
+      "system_prompt": true,
+      "role": "system",
+      "content": "[Content Placeholder]",
+      "identifier": "personaDescription_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": true
+    },
+    {
+      "name": "Char Description",
+      "system_prompt": true,
+      "role": "system",
+      "content": "[Content Placeholder]",
+      "identifier": "charDescription_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": true
+    },
+    {
+      "name": "Char Personality",
+      "system_prompt": true,
+      "role": "system",
+      "content": "[Content Placeholder]",
+      "identifier": "charPersonality_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": true
+    },
+    {
+      "name": "Scenario",
+      "system_prompt": true,
+      "role": "system",
+      "content": "[Content Placeholder]",
+      "identifier": "scenario_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": true
+    },
+    {
+      "name": "Enhance Definitions",
+      "system_prompt": true,
+      "role": "system",
+      "content": "[Content Placeholder]",
+      "identifier": "enhanceDefinitions_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "Auxiliary Prompt",
+      "system_prompt": true,
+      "role": "system",
+      "content": "[Content Placeholder]",
+      "identifier": "auxiliaryPrompt_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "World Info (after)",
+      "system_prompt": true,
+      "role": "system",
+      "content": "[Content Placeholder]",
+      "identifier": "worldInfoAfter_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": true
+    },
+    {
+      "name": "Chat Examples",
+      "system_prompt": true,
+      "role": "system",
+      "content": "[Content Placeholder]",
+      "identifier": "chatExamples_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": true
+    },
+    {
+      "name": "Chat History",
+      "system_prompt": true,
+      "role": "system",
+      "content": "[Content Placeholder]",
+      "identifier": "chatHistory_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": true
+    },
+    {
+      "name": "Post-History Instruction",
+      "system_prompt": true,
+      "role": "system",
+      "content": "[Content Placeholder]",
+      "identifier": "postHistoryInstruction_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "用户身份 - 剧情角色 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你扮演剧情角色。]",
+      "identifier": "user_identity_role_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "用户身份 - 观察者 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你会以旁观者的身份观察剧情， {{char}} 和 NPC 不知道你的存在，也不会和你互动。]",
+      "identifier": "user_identity_observer_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "用户身份 - 幕后者 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你会以幕后者的身份推动剧情的发展， {{char}} 和 NPC 不知道你的存在，也不会和你互动。]",
+      "identifier": "user_identity_behind_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "用户身份 - 引导者 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你会以剧情引导者的身份来主导剧情的发展， {{char}} 和 NPC 不知道你的存在，也不会和你互动。]",
+      "identifier": "user_identity_guide_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "用户参与 - 亲身进入剧情 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: {{char}}: 你看到 {{user}} 走过来了。]",
+      "identifier": "user_participation_enter_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "AI 身份 - 仅char (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你只扮演 {{char}} 的角色。]",
+      "identifier": "ai_role_char_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "AI 身份 - char+npcs (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你同时扮演 {{char}} 和 lorebook 中定义的 NPC 的角色。]",
+      "identifier": "ai_role_char_npcs_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "AI 身份 - user+char+npcs (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你同时扮演 {{user}} , {{char}} 和 lorebook 中定义的 NPC 的角色，{{user}} 的对话以 {user}: 开头， npc 的对话以 【npc】开头。]",
+      "identifier": "ai_role_user_char_npcs_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "{{char}}视角-第一人称 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你需要以第一人称视角来描写{{char}}， 例如: 我感觉到了。]",
+      "identifier": "char_perspective_first_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "{{char}}视角-第二人称 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你需要以第二人称视角来描写{{char}}， 例如：你感觉到了。]",
+      "identifier": "char_perspective_second_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "{{char}}视角-第三人称 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你需要以第三人称视角来描写{{char}}， 例如：他感觉到了。]",
+      "identifier": "char_perspective_third_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "{{char}}视角-个人视角 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你需要以个人视角来描写{{char}}， 例如：{{char}}感觉到了。]",
+      "identifier": "char_perspective_personal_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "{{char}}视角-全知视角 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你需要以全知视角来描写{{char}}。]",
+      "identifier": "char_perspective_omni_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "NPCs视角-第一人称 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你需要以第一人称视角来描写 NPC，例如：我感觉到了。]",
+      "identifier": "npc_perspective_first_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "NPCs视角-第二人称 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你需要以第二人称视角来描写 NPC，例如：你感觉到了。]",
+      "identifier": "npc_perspective_second_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "NPCs视角-第三人称 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你需要以第三人称视角来描写 NPC，例如：他感觉到了。]",
+      "identifier": "npc_perspective_third_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "NPCs视角-个人视角 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你需要以个人视角来描写 NPC，例如：{{npc}}感觉到了。]",
+      "identifier": "npc_perspective_personal_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    },
+    {
+      "name": "NPCs视角-全知视角 (后置)",
+      "system_prompt": true,
+      "role": "assistant",
+      "content": "[System: 你需要以全知视角来描写 NPC。]",
+      "identifier": "npc_perspective_omni_unique",
+      "injection_position": 0,
+      "injection_depth": 4,
+      "forbid_overrides": false,
+      "marker": false
+    }
+  ],
+  "chat": {
+    "temperature": 0.7,
+    "top_p": 0.6,
+    "top_k": 30,
+    "frequency_penalty": 0.0,
+    "presence_penalty": 0.0,
+    "repetition_penalty": 1.1,
+    "max_length": 250,
+    "stop_sequences": [
+      "\nUser:",
+      "\nUser\n",
+      "<|endoftext|>"
+    ]
+  },
+  "token_limits": {
+    "chat_context": 2048,
+    "chat_output": 512,
+    "summary_output": 512
+  },
+  "advanced": {
+    "context_memory": true,
+    "use_history": true,
+    "use_instruction": true,
+    "instruction_template": "你是一个角色扮演助手，你必须严格扮演当前角色卡的角色，并且不能扮演其他角色卡的角色。\n\n当前角色：{{char.name}}\n\n角色设定：\n{{char.persona}}\n\n世界信息：\n{{world_info}}\n\n知识库：\n{{lorebook}}\n\n作者笔记：\n{{author_notes}}\n\n对话历史：\n{{history}}\n\n当前对话：\n{{user}}: {{input}}\n{{char}}: ",
+    "dynamic_context": {
+      "enabled": true,
+      "max_chars": 600
+    },
+    "instruction_order": [
+      "persona",
+      "world_info",
+      "lorebook",
+      "author_notes",
+      "history",
+      "input"
+    ],
+    "generate_response": true,
+    "max_generate_steps": 15
+  },
+  "modules": {
+    "world_info": {
+      "enabled": false
+    },
+    "lorebook": {
+      "enabled": true
+    },
+    "author_notes": {
+      "enabled": false
+    }
+  },
+  "extensions": {
+    "plugin1": {
+      "enabled": false,
+      "option1": "value1",
+      "option2": "value2"
+    }
+  },
+  "extras": {
+    "current_char": "{{char.name}}"
+  },
+  "prompt_order": [
+    {
+      "identifier": "main_prompt_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "worldInfoBefore_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "personaDescription_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "charDescription_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "charPersonality_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "scenario_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "enhanceDefinitions_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "auxiliaryPrompt_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "worldInfoAfter_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "chatExamples_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "chatHistory_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "postHistoryInstruction_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "user_identity_role_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "user_identity_observer_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "user_identity_behind_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "user_identity_guide_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "user_participation_enter_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "ai_role_char_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "ai_role_char_npcs_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "ai_role_user_char_npcs_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "char_perspective_first_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "char_perspective_second_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "char_perspective_third_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "char_perspective_personal_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "char_perspective_omni_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "npc_perspective_first_unique",
+      "enabled": true
+    },
+    {
+      "identifier": "npc_perspective_second_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "npc_perspective_third_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "npc_perspective_personal_unique",
+      "enabled": false
+    },
+    {
+      "identifier": "npc_perspective_omni_unique",
+      "enabled": false
+    }
+  ],
+  "api_url_scale": "",
+  "show_external_models": false,
+  "assistant_prefill": "",
+  "assistant_impersonation": "",
+  "human_sysprompt_message": "好的，让我们开始吧。请利用我们提供的所有信息和说明来生成您的回复。",
+  "claude_use_sysprompt": false,
+  "use_makersuite_sysprompt": false,
+  "use_alt_scale": false,
+  "squash_system_messages": false,
+  "image_inlining": true,
+  "inline_image_quality": "auto",
+  "bypass_status_check": false,
+  "continue_prefill": false,
+  "continue_postfix": " ",
+  "function_calling": true,
+  "seed": -1,
+  "n": 1
+}

@@ -1,0 +1,20 @@
+{
+  "name": "Hogwarts",
+  "entries": [
+    {
+      "keywords": [
+        "Hogwarts",
+        "school",
+        "castle"
+      ],
+      "content": "Hogwarts School of Witchcraft and Wizardry is a large, seven-story high building supported by magic, with a hundred and forty-two staircases throughout its many towers and turrets and very deep dungeons."
+    },
+    {
+      "keywords": [
+        "Dumbledore",
+        "headmaster"
+      ],
+      "content": "Albus Dumbledore is the headmaster of Hogwarts. He is considered the most powerful wizard of his time, and is known for his kindness, wisdom, and twinkling blue eyes."
+    }
+  ]
+}

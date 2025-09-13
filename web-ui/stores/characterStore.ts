@@ -23,6 +23,8 @@ export const useCharacterStore = defineStore('character', () => {
       const bootstrapData = queryClient.getQueryData<BootstrapResponse>([BOOTSTRAP_QUERY_KEY, settingsStore.userId]);
       const paginatedQueries = queryClient.getQueryCache().findAll({ queryKey: ['paginatedData', 'character'] });
       const paginatedPersonasQueries = queryClient.getQueryCache().findAll({ queryKey: ['paginatedData', 'persona'] });
+      const userConfig = settingsStore.userFullConfig;
+      const deletedPublicIds = new Set(userConfig?.deleted_public_items || []);
 
       const allCharsMap = new Map<Filename, Character>();
       
@@ -36,17 +38,11 @@ export const useCharacterStore = defineStore('character', () => {
           };
       };
       
-      if (bootstrapData?.public_characters) {
-          Object.entries(bootstrapData.public_characters).forEach(([filename, charData]) => {
-              allCharsMap.set(filename, processCharData(charData as Character, filename, false));
-          });
-      }
-      
       const processQuery = (query: any) => {
         const pageData = query.state.data as PaginatedData<Character>;
         if (pageData && pageData.items) {
           pageData.items.forEach((char: Character) => {
-            allCharsMap.set(char.filename, processCharData(char, char.filename, char.is_private));
+            allCharsMap.set(char.filename, processCharData(char, char.filename, true));
           });
         }
       };
@@ -54,30 +50,37 @@ export const useCharacterStore = defineStore('character', () => {
       paginatedQueries.forEach(processQuery);
       paginatedPersonasQueries.forEach(processQuery);
 
+      if (bootstrapData?.public_characters) {
+          Object.entries(bootstrapData.public_characters).forEach(([filename, charData]) => {
+              if (!allCharsMap.has(filename) && !deletedPublicIds.has(`character:${filename}`)) {
+                allCharsMap.set(filename, processCharData(charData as Character, filename, false));
+              }
+          });
+      }
+
       return Object.fromEntries(allCharsMap);
     });
     
     const importableItems = computed(() => {
         const bootstrapData = queryClient.getQueryData<BootstrapResponse>([BOOTSTRAP_QUERY_KEY, settingsStore.userId]);
-        if (!bootstrapData?.public_characters) return [];
-
-        const paginatedQueries = queryClient.getQueryCache().findAll({ queryKey: ['paginatedData', 'character'] });
-        const displayedFilenames = new Set<Filename>();
-
-        paginatedQueries.forEach(query => {
-            const pageData = query.state.data as any;
-            if (pageData && pageData.items) {
-                pageData.items.forEach((char: Character) => displayedFilenames.add(char.filename));
-            }
-        });
+        const userConfig = settingsStore.userFullConfig;
+        if (!bootstrapData?.public_characters || !userConfig?.deleted_public_items) {
+            return [];
+        }
+        
+        const deletedPublicIds = new Set(userConfig.deleted_public_items);
 
         return Object.entries(bootstrapData.public_characters)
-            .filter(([filename, _]) => !displayedFilenames.has(filename))
-            .map(([filename, charData]) => ({
-                ...(charData as BackendCharacter),
-                filename,
-                is_private: true,
-            }));
+            .filter(([filename]) => deletedPublicIds.has(`character:${filename}`))
+            .map(([filename, charData]) => {
+                const backendChar = charData as BackendCharacter;
+                return {
+                    ...backendChar,
+                    filename,
+                    is_private: true,
+                    displayName: backendChar.displayName || backendChar.name,
+                };
+            });
     });
 
     const importableCharacters = computed(() => {
@@ -145,8 +148,8 @@ export const useCharacterStore = defineStore('character', () => {
     }
 
     async function deleteCharacter(filename: string) {
-        const bootstrapData = queryClient.getQueryData<BootstrapResponse>([BOOTSTRAP_QUERY_KEY, settingsStore.userId]);
-        const isPublicTemplate = !!bootstrapData?.public_characters?.[filename];
+        const charToDelete = characters.value[filename];
+        if (!charToDelete) return;
 
         if (settingsStore.activeCharacterKey === filename) {
             await setActiveCharacter('Assistant');
@@ -155,9 +158,9 @@ export const useCharacterStore = defineStore('character', () => {
             await settingsStore.setActivePersona('User');
         }
         
-        deleteData({ dataType: 'character', filename: filename });
-
-        if (isPublicTemplate) {
+        if (charToDelete.is_private) {
+            deleteData({ dataType: 'character', filename: filename });
+        } else {
             const userConfig = settingsStore.userFullConfig;
             if (userConfig) {
                 const deletedItems = userConfig.deleted_public_items || [];

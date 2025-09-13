@@ -3,7 +3,7 @@
     class="archive-card justify-between group"
     :class="isActive ? 'border-green-500/50' : 'hover:border-gray-500'"
   >
-    <div class="p-4">
+    <div class="p-4 relative">
       <h3 class="text-lg font-semibold truncate" :class="isActive ? 'text-green-300' : 'text-white'">
         {{ preset.displayName }}
       </h3>
@@ -37,7 +37,6 @@
         🔗
        </button>
        <button 
-        v-if="preset.is_private"
         @click="emit('delete', preset)" 
         class="btn btn-danger !p-2 text-sm" 
         title="删除预设"

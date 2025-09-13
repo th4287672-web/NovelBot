@@ -45,6 +45,12 @@ export default defineNuxtConfig({
         strict: true,
         allow: [webUiDir]
       },
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+        }
+      }
     },
     build: {
       sourcemap: process.env.NODE_ENV === 'development',
@@ -60,13 +66,6 @@ export default defineNuxtConfig({
     },
     compatibilityDate: '2025-09-04',
     serveStatic: true,
-    devProxy: {
-      '/proxy-api': {
-        target: 'http://localhost:8080/api',
-        changeOrigin: true,
-        prependPath: true
-      }
-    }
   },
 
   tailwindcss: {

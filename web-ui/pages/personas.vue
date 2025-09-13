@@ -1,30 +1,30 @@
 <template>
-  <div class="h-full w-full">
+  <CommonPageLayout>
+    <template #title>// 用户人设管理</template>
+    <template #actions>
+      <div id="actions-wrapper" class="flex gap-4 items-center">
+          <div class="flex items-center bg-gray-700/60 rounded-md p-1">
+            <button @click="viewType = 'grid'" class="p-1.5 rounded-md transition-colors" :class="{'bg-purple-600 text-white': viewType === 'grid'}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg></button>
+            <button @click="viewType = 'list'" class="p-1.5 rounded-md transition-colors" :class="{'bg-purple-600 text-white': viewType === 'list'}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg></button>
+          </div>
+          <div class="relative">
+            <input 
+              type="text" 
+              v-model="searchQuery" 
+              placeholder="搜索人设..." 
+              class="bg-gray-700/60 rounded-sm border-2 border-gray-500/80 px-3 py-2 text-white transition-colors duration-200 focus:outline-none focus:bg-gray-700 w-48 text-sm"
+            />
+          </div>
+          <button @click.stop="isImportModalOpen = true" class="btn btn-secondary">导入默认</button>
+          <button @click="openModal('create')" class="btn btn-primary bg-purple-600 hover:bg-purple-500">创建新人设</button>
+      </div>
+    </template>
+    
     <ManagementLayout
       :is-loading="!isReady"
       :is-empty="filteredPersonas.length === 0 && !searchQuery"
-      @create="openModal('create')"
+      :is-contained="true"
     >
-      <template #title>// 用户人设管理</template>
-      <template #create-button-content>
-        <div class="flex gap-4 items-center">
-            <div class="flex items-center bg-gray-700/60 rounded-md p-1">
-              <button @click="viewType = 'grid'" class="p-1.5 rounded-md transition-colors" :class="{'bg-purple-600 text-white': viewType === 'grid'}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg></button>
-              <button @click="viewType = 'list'" class="p-1.5 rounded-md transition-colors" :class="{'bg-purple-600 text-white': viewType === 'list'}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 10a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM3 15a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd" /></svg></button>
-            </div>
-            <div class="relative">
-              <input 
-                type="text" 
-                v-model="searchQuery" 
-                placeholder="搜索人设..." 
-                class="bg-gray-700/60 rounded-sm border-2 border-gray-500/80 px-3 py-2 text-white transition-colors duration-200 focus:outline-none focus:bg-gray-700 w-48 text-sm"
-              />
-            </div>
-            <button @click.stop="isImportModalOpen = true" class="btn btn-secondary">导入默认</button>
-            <button class="btn btn-primary bg-purple-600 hover:bg-purple-500">创建新人设</button>
-        </div>
-      </template>
-      
       <div v-if="filteredPersonas.length > 0" :class="viewType === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-3'">
         <div
           v-for="(persona, index) in filteredPersonas"
@@ -77,7 +77,8 @@
         @close="isImportModalOpen = false"
         @import="handleImport"
     />
-  </div>
+    <CommonLayoutDiagnosisPopup :rect="rect" :is-enabled="isEnabled" />
+  </CommonPageLayout>
 </template>
 
 <script setup lang="ts">
@@ -88,11 +89,16 @@ import { useSettingsStore } from '~/stores/settings';
 import { useDisplayOrderMutation } from '~/composables/useDataMutations';
 import { useDraggable } from '~/composables/useDraggable';
 import type { Character, BackendCharacter } from '~/types/api';
+import CommonPageLayout from '~/components/common/PageLayout.vue';
 import ManagementLayout from '~/components/common/ManagementLayout.vue';
 import PersonaCard from '~/components/persona/PersonaCard.vue';
 import PersonaListItem from '~/components/persona/PersonaListItem.vue';
 import PersonaEditModal from '~/components/persona/PersonaEditModal.vue';
 import { useStorage } from '@vueuse/core';
+import { useLayoutDiagnosis } from '~/composables/useLayoutDiagnosis';
+import CommonLayoutDiagnosisPopup from '~/components/common/LayoutDiagnosisPopup.vue';
+
+const { rect, isEnabled } = useLayoutDiagnosis();
 
 const characterStore = useCharacterStore();
 const settingsStore = useSettingsStore();
@@ -134,7 +140,7 @@ const filteredPersonas = computed(() => {
     }
     return localOrderedPersonas.value.filter(p =>
         p.displayName.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.value.toLowerCase())
+        (p.description && p.description.toLowerCase().includes(searchQuery.value.toLowerCase()))
     );
 });
 

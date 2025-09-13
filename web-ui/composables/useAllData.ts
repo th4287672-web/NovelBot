@@ -1,23 +1,22 @@
-import { useQuery, useQueryClient, type UseQueryReturnType } from '@tanstack/vue-query';
-import { computed, ref, type Ref } from 'vue';
+import { useQuery, useQueryClient, type UseQueryReturnType, type UseQueryDefinedReturnType } from '@tanstack/vue-query';
+import { computed, ref, type Ref, watch } from 'vue';
 import { apiService } from '~/services/api';
 import { useSettingsStore } from '~/stores/settings';
 import type { AllDataResponse, Filename, Character, Preset, WorldInfo, Group, PaginatedData, BootstrapResponse } from '~/types/api';
+import { useSessionStore } from '~/stores/sessionStore';
 
 export const BOOTSTRAP_QUERY_KEY = 'bootstrapData';
 
 export function useBootstrapQuery(): UseQueryReturnType<BootstrapResponse, Error> {
   const settingsStore = useSettingsStore();
+  const sessionStore = useSessionStore();
   
-  return useQuery({
+  const query = useQuery({
     queryKey: [BOOTSTRAP_QUERY_KEY, settingsStore.userId],
-    queryFn: () => {
-      // [代码注释] queryFn 是 Vue Query 获取数据的核心。
-      // 它只在需要时（例如缓存失效或首次加载）被调用。
+    queryFn: (): Promise<BootstrapResponse> => {
       console.log(`[DIAG][useBootstrapQuery] 正在为用户 ${settingsStore.userId} 执行实际的 API 数据获取...`);
       if (!settingsStore.userId || settingsStore.isAnonymous) {
         console.warn('[DIAG][useBootstrapQuery] 已拒绝：用户 ID 无效或为匿名用户。');
-        // [代码注释] 对于匿名用户或未登录状态，我们返回一个符合类型的空结构，避免后续代码出错。
         const anonymousResponse: BootstrapResponse = {
           user_config: {
             active_character: 'Assistant',
@@ -49,20 +48,32 @@ export function useBootstrapQuery(): UseQueryReturnType<BootstrapResponse, Error
       }
       return apiService.bootstrap(settingsStore.userId);
     },
-    // [核心优化] `enabled` 属性控制查询是否自动执行。只有当用户ID有效且在客户端时才执行。
     enabled: computed(() => {
       const isEnabled = !!settingsStore.userId && process.client;
       console.log(`[DIAG][useBootstrapQuery] 'enabled' 计算属性当前为: ${isEnabled}`);
       return isEnabled;
     }),
-    // [核心优化] 设置合理的缓存时间，这是本次优化的关键。
-    // staleTime: 5分钟。在这段时间内，数据被认为是“新鲜的”，不会触发新的网络请求。
     staleTime: 1000 * 60 * 5,
-    // gcTime: 10分钟。如果一个查询在10分钟内没有任何活跃的观察者，它将被从缓存中移除。
     gcTime: 1000 * 60 * 10,
-    // [核心优化] 禁用窗口聚焦时自动重新获取，以避免不必要的 API 调用。
     refetchOnWindowFocus: false,
   });
+
+  watch(
+    () => query.isSuccess.value,
+    (isSuccess, wasSuccess) => {
+      if (isSuccess && !wasSuccess) {
+        const data = query.data.value;
+        console.log('[DIAG][useBootstrapQuery] watch(isSuccess) 回调触发。');
+        if (data && data.user_config && data.user_config.active_character) {
+          console.log(`[DIAG][useBootstrapQuery] 正在为角色 '${data.user_config.active_character}' 加载会话...`);
+          sessionStore.loadSessionsForCharacter(data.user_config.active_character);
+        }
+      }
+    },
+    { immediate: true }
+  );
+
+  return query;
 }
 
 type DataType = 'character' | 'preset' | 'world_info' | 'group' | 'persona';
@@ -81,7 +92,6 @@ export function usePaginatedData<T extends { filename: Filename }>(
     queryKey: queryKey,
     queryFn: async (): Promise<PaginatedData<T>> => {
       if (!settingsStore.userId || settingsStore.isAnonymous) {
-        // [代码注释] 对匿名用户返回空数据结构
         return { items: [], total_items: 0, total_pages: 1, current_page: page.value };
       }
       const data = await apiService.getPaginatedData(
@@ -105,8 +115,7 @@ export function usePaginatedData<T extends { filename: Filename }>(
       return data as PaginatedData<T>;
     },
     enabled: computed(() => !!settingsStore.userId && process.client),
-    // [核心优化] 分页数据同样设置缓存时间
-    staleTime: 1000 * 60 * 1, // 1分钟
+    staleTime: 1000 * 60 * 1,
     placeholderData: (previousData) => previousData,
   });
 
@@ -116,7 +125,6 @@ export function usePaginatedData<T extends { filename: Filename }>(
 export function useInvalidateAllData() {
     const queryClient = useQueryClient();
     return () => {
-        // [代码注释] 这个函数用于在重大变更后，强制让所有缓存失效，并重新获取最新数据。
         queryClient.invalidateQueries({ queryKey: [BOOTSTRAP_QUERY_KEY] });
         queryClient.invalidateQueries({ queryKey: ['paginatedData'] });
     };

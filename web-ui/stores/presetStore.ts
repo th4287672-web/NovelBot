@@ -19,30 +19,34 @@ export const usePresetStore = defineStore('preset', () => {
     const presets = computed<Record<string, Preset>>(() => {
         const bootstrapData = queryClient.getQueryData<BootstrapResponse>([BOOTSTRAP_QUERY_KEY, settingsStore.userId]);
         const paginatedQueries = queryClient.getQueryCache().findAll({ queryKey: ['paginatedData', 'preset'] });
+        const userConfig = settingsStore.userFullConfig;
+        const deletedPublicIds = new Set(userConfig?.deleted_public_items || []);
       
         const allPresetsMap = new Map<Filename, Preset>();
   
-        if (bootstrapData?.public_presets) {
-            Object.entries(bootstrapData.public_presets).forEach(([filename, presetData]) => {
-                const backendPreset = presetData as BackendPreset;
-                allPresetsMap.set(filename, { 
-                    ...backendPreset, 
-                    filename, 
-                    is_private: false, 
-                    name: backendPreset.name || filename,
-                    displayName: backendPreset.displayName || backendPreset.name || filename 
-                });
-            });
-        }
-        
         paginatedQueries.forEach(query => {
             const pageData = query.state.data as any;
             if (pageData && pageData.items) {
                 pageData.items.forEach((preset: Preset) => {
-                    allPresetsMap.set(preset.filename, { ...preset, displayName: preset.displayName || preset.name });
+                    allPresetsMap.set(preset.filename, { ...preset, displayName: preset.displayName || preset.name, is_private: true });
                 });
             }
         });
+        
+        if (bootstrapData?.public_presets) {
+            Object.entries(bootstrapData.public_presets).forEach(([filename, presetData]) => {
+                if (!allPresetsMap.has(filename) && !deletedPublicIds.has(`preset:${filename}`)) {
+                    const backendPreset = presetData as BackendPreset;
+                    allPresetsMap.set(filename, { 
+                        ...backendPreset, 
+                        filename, 
+                        is_private: false, 
+                        name: backendPreset.name || filename,
+                        displayName: backendPreset.displayName || backendPreset.name || filename 
+                    });
+                }
+            });
+        }
   
         return Object.fromEntries(allPresetsMap);
     });
@@ -54,20 +58,15 @@ export const usePresetStore = defineStore('preset', () => {
 
     const importablePresets = computed(() => {
         const bootstrapData = queryClient.getQueryData<BootstrapResponse>([BOOTSTRAP_QUERY_KEY, settingsStore.userId]);
-        if (!bootstrapData?.public_presets) return [];
+        const userConfig = settingsStore.userFullConfig;
+        if (!bootstrapData?.public_presets || !userConfig?.deleted_public_items) {
+            return [];
+        }
 
-        const paginatedQueries = queryClient.getQueryCache().findAll({ queryKey: ['paginatedData', 'preset'] });
-        const displayedFilenames = new Set<Filename>();
-
-        paginatedQueries.forEach(query => {
-            const pageData = query.state.data as any;
-            if (pageData && pageData.items) {
-                pageData.items.forEach((preset: Preset) => displayedFilenames.add(preset.filename));
-            }
-        });
+        const deletedPublicIds = new Set(userConfig.deleted_public_items);
         
         return Object.entries(bootstrapData.public_presets)
-            .filter(([filename, _]) => !displayedFilenames.has(filename))
+            .filter(([filename]) => deletedPublicIds.has(`preset:${filename}`))
             .map(([filename, p]) => {
                 const presetData = p as BackendPreset;
                 return {
@@ -109,16 +108,16 @@ export const usePresetStore = defineStore('preset', () => {
     }
     
     async function deletePreset(filename: Filename) {
-        const settingsStore = useSettingsStore();
-        const bootstrapData = queryClient.getQueryData<BootstrapResponse>([BOOTSTRAP_QUERY_KEY, settingsStore.userId]);
-        const isPublicTemplate = !!bootstrapData?.public_presets?.[filename];
+        const presetToDelete = presets.value[filename];
+        if (!presetToDelete) return;
 
         if (settingsStore.activePresetName === filename) {
             await setActivePreset('百变助手');
         }
-        deleteData({ dataType: 'preset', filename: filename });
-
-        if (isPublicTemplate) {
+        
+        if (presetToDelete.is_private) {
+            deleteData({ dataType: 'preset', filename: filename });
+        } else {
             const userConfig = settingsStore.userFullConfig;
             if (userConfig) {
                 const deletedItems = userConfig.deleted_public_items || [];

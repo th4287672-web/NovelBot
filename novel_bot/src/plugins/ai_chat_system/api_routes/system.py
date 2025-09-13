@@ -6,13 +6,14 @@ from nonebot import logger
 import os
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from typing import List, Optional, Dict, Any
 
 from ..services import system_utils
 from .. import global_state
 from ..api_manager import ApiManager
 from ..session_manager import SessionManager
 from ..database.session import get_db_session
-from ..database.models import Session, ChatMessage
+from ..database.models import Session, ChatMessage, User
 
 router = APIRouter(prefix="/system", tags=["System Utilities"])
 test_router = APIRouter()
@@ -21,8 +22,15 @@ class ApiKeyTestRequest(BaseModel):
     api_key: str
     proxy_url: str | None = None
 
+class ApiKey(BaseModel):
+    id: str
+    name: str
+    key: str
+    provider: str
+
 class CheckModelsRequest(BaseModel):
     user_id: str
+    api_keys: Optional[List[ApiKey]] = None
 
 @test_router.post("/system/check_models")
 async def check_user_models(payload: CheckModelsRequest, db: AsyncSession = Depends(get_db_session)):
@@ -31,11 +39,21 @@ async def check_user_models(payload: CheckModelsRequest, db: AsyncSession = Depe
         raise HTTPException(status_code=503, detail="DataManager not initialized.")
     
     user_config = await dm.get_user_config(payload.user_id, db)
-    api_keys = user_config.get("api_keys", [])
+    
+    api_keys_to_check = []
+    if payload.api_keys is not None:
+        api_keys_to_check = [key.key for key in payload.api_keys if key.key]
+    else:
+        db_keys = user_config.get("api_keys", [])
+        if db_keys and isinstance(db_keys[0], dict):
+            api_keys_to_check = [item.get('key', '') for item in db_keys if item.get('key')]
+        else:
+            api_keys_to_check = db_keys
+
     proxy_url = user_config.get("llm_service_config", {}).get("proxy")
 
-    if not api_keys:
-        raise HTTPException(status_code=400, detail="用户配置中未找到API Keys。")
+    if not api_keys_to_check:
+        raise HTTPException(status_code=400, detail="用户配置中未找到API Keys，也未提供临时Key进行测试。")
 
     original_proxy = os.environ.get('HTTPS_PROXY')
     try:
@@ -43,7 +61,7 @@ async def check_user_models(payload: CheckModelsRequest, db: AsyncSession = Depe
             os.environ['HTTPS_PROXY'] = proxy_url
             os.environ['HTTP_PROXY'] = proxy_url
 
-        temp_api_manager = ApiManager(api_keys)
+        temp_api_manager = ApiManager(api_keys_to_check)
         await temp_api_manager.initialize_available_models()
         
         global_state.api_key_model_cache[payload.user_id] = temp_api_manager.verified_models

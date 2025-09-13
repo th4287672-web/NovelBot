@@ -1,13 +1,8 @@
-<!-- web-ui/layouts/default.vue -->
 <template>
   <div class="flex h-screen w-screen bg-gray-900 text-white overflow-hidden">
-    <!-- 
-      [核心优化] 使用 v-if/v-else-if/v-else 结构来处理不同的加载状态。
-      这比原先单一的 v-if="isReady" 提供了更丰富的用户反馈。
-    -->
     <template v-if="bootstrapQuery.isSuccess.value">
       <AppSidebar />
-      <main class="relative flex-1 h-full">
+      <main class="relative flex-1 h-full min-w-0">
         <NuxtPage />
         
         <div 
@@ -49,9 +44,20 @@ import DevLogViewer from '~/components/DevLogViewer.vue';
 import TaskCenter from '~/components/common/TaskCenter.vue';
 import ChatRunSettingsPanel from '~/components/chat/RunSettingsPanel.vue';
 import { useUIStore } from '~/stores/ui';
-// [核心优化] 直接在布局中使用 useBootstrapQuery 来驱动UI状态
 import { useBootstrapQuery } from '~/composables/useAllData';
+import { watch } from 'vue';
+import { useRoute } from 'vue-router';
 
 const uiStore = useUIStore();
 const bootstrapQuery = useBootstrapQuery();
+const route = useRoute();
+
+watch(
+  () => route.path,
+  (newPath) => {
+    if (!newPath.startsWith('/chat')) {
+      uiStore.isRunSettingsPanelOpen = false;
+    }
+  }
+);
 </script>

@@ -106,12 +106,14 @@ async def update_user_config(user_id: str, config_data: Dict = Body(...), db: As
         
     try:
         await global_state.data_manager.save_user_config(user_id, config_data, db)
+        logger.info(f"[CONFIG] User '{user_id}' config updated successfully. Changed keys: {list(config_data.keys())}")
         await broadcast_status_update(
             {"user_id": user_id, "new_config": config_data},
             "user_config_updated"
         )
         return {"status": "success", "message": "User config updated successfully."}
     except Exception as e:
+        logger.error(f"Failed to save config for user '{user_id}': {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to save config: {e}")
 
 @router.post("/user_config/{user_id}/display_order")

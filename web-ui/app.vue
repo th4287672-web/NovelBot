@@ -17,6 +17,14 @@
 import { useSettingsStore } from '~/stores/settings';
 import { storeToRefs } from 'pinia';
 
+useHead({
+  link: [
+    { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+    { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+    { href: 'https://fonts.googleapis.com/css2?family=Fira+Code&family=Inter&family=Roboto&family=Source+Serif+4&display=swap', rel: 'stylesheet' }
+  ]
+})
+
 const settingsStore = useSettingsStore();
 const { isReady, isAnonymous } = storeToRefs(settingsStore);
 </script>

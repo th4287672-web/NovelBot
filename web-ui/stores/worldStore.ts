@@ -19,6 +19,8 @@ export const useWorldStore = defineStore('world', () => {
     const worldInfo = computed<Record<string, WorldInfo>>(() => {
         const bootstrapData = queryClient.getQueryData<BootstrapResponse>([BOOTSTRAP_QUERY_KEY, settingsStore.userId]);
         const paginatedQueries = queryClient.getQueryCache().findAll({ queryKey: ['paginatedData', 'world_info'] });
+        const userConfig = settingsStore.userFullConfig;
+        const deletedPublicIds = new Set(userConfig?.deleted_public_items || []);
       
         const allWorldsMap = new Map<Filename, WorldInfo>();
   
@@ -26,14 +28,14 @@ export const useWorldStore = defineStore('world', () => {
             const pageData = query.state.data as any;
             if (pageData && pageData.items) {
                 pageData.items.forEach((world: WorldInfo) => {
-                    allWorldsMap.set(world.filename, { ...world, name: world.name || world.filename });
+                    allWorldsMap.set(world.filename, { ...world, name: world.name || world.filename, is_private: true });
                 });
             }
         });
 
         if (bootstrapData?.public_world_info) {
             Object.entries(bootstrapData.public_world_info).forEach(([filename, worldData]) => {
-                if (!allWorldsMap.has(filename)) {
+                if (!allWorldsMap.has(filename) && !deletedPublicIds.has(`world_info:${filename}`)) {
                     const backendWorldInfo = worldData as BackendWorldInfo;
                     allWorldsMap.set(filename, { 
                         ...backendWorldInfo, 
@@ -50,20 +52,15 @@ export const useWorldStore = defineStore('world', () => {
 
     const importableWorlds = computed(() => {
         const bootstrapData = queryClient.getQueryData<BootstrapResponse>([BOOTSTRAP_QUERY_KEY, settingsStore.userId]);
-        if (!bootstrapData?.public_world_info) return [];
+        const userConfig = settingsStore.userFullConfig;
+        if (!bootstrapData?.public_world_info || !userConfig?.deleted_public_items) {
+            return [];
+        }
 
-        const paginatedQueries = queryClient.getQueryCache().findAll({ queryKey: ['paginatedData', 'world_info'] });
-        const displayedFilenames = new Set<Filename>();
-
-        paginatedQueries.forEach(query => {
-            const pageData = query.state.data as any;
-            if (pageData && pageData.items) {
-                pageData.items.forEach((world: WorldInfo) => displayedFilenames.add(world.filename));
-            }
-        });
+        const deletedPublicIds = new Set(userConfig.deleted_public_items);
 
         return Object.entries(bootstrapData.public_world_info)
-            .filter(([filename, _]) => !displayedFilenames.has(filename))
+            .filter(([filename]) => deletedPublicIds.has(`world_info:${filename}`))
             .map(([filename, worldData]) => ({
                 ...(worldData as BackendWorldInfo),
                 filename: filename,
@@ -82,13 +79,14 @@ export const useWorldStore = defineStore('world', () => {
     }
     
     async function deleteWorldBook(filename: Filename) {
-        const bootstrapData = queryClient.getQueryData<BootstrapResponse>([BOOTSTRAP_QUERY_KEY, settingsStore.userId]);
-        const isPublicTemplate = !!bootstrapData?.public_world_info?.[filename];
+        const worldToDelete = worldInfo.value[filename];
+        if (!worldToDelete) return;
 
         await handleWorldBookDeletion(filename);
-        deleteData({ dataType: 'world_info', filename: filename });
-
-        if (isPublicTemplate) {
+        
+        if (worldToDelete.is_private) {
+            deleteData({ dataType: 'world_info', filename: filename });
+        } else {
             const settingsStore = useSettingsStore();
             const userConfig = settingsStore.userFullConfig;
             if (userConfig) {

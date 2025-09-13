@@ -67,7 +67,7 @@
                     <span v-if="sessionStore.isTitleGenerating(session.id).value" class="animate-pulse">✨</span>
                     <span v-else>✨</span>
                   </button>
-                  <button @click.stop="deleteSession(session)" title="删除" class="p-1.5 hover:bg-gray-700 rounded text-sm">🗑️</button>
+                  <button @click.stop="handleDelete(session)" title="删除" class="p-1.5 hover:bg-gray-700 rounded text-sm">🗑️</button>
               </div>
             </div>
             <p v-if="sessionsForSelectedChar.length === 0" class="text-center text-gray-500 py-4">
@@ -99,6 +99,7 @@ const emit = defineEmits<{
 
 const characterStore = useCharacterStore();
 const sessionStore = useSessionStore();
+const router = useRouter();
 
 const { characters } = storeToRefs(characterStore);
 const { sessionsByChar } = storeToRefs(sessionStore);
@@ -170,10 +171,20 @@ async function aiRename(session: Session) {
     await sessionStore.generateSessionTitle(selectedCharacter.value.filename, session.id);
 }
 
-function deleteSession(session: Session) {
+async function handleDelete(session: Session) {
   if (confirm(`确定要永久删除会话 "${session.title}" 吗？此操作无法撤销。`)) {
     if (!selectedCharacter.value) return;
-    sessionStore.deleteSession(selectedCharacter.value.filename, session.id);
+    const oldActiveId = props.activeSessionId;
+    await sessionStore.deleteSession(selectedCharacter.value.filename, session.id);
+    
+    if (oldActiveId === session.id) {
+        const newActiveId = sessionStore.activeSessionId;
+        if (newActiveId) {
+            router.replace(`/chat/${newActiveId}`);
+        } else {
+            router.replace('/chat/new');
+        }
+    }
   }
 }
 </script>

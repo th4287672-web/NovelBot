@@ -1,30 +1,29 @@
 <template>
-  <div class="h-full w-full">
+  <CommonPageLayout>
+    <template #title>// 世界书管理</template>
+    <template #actions>
+      <div class="flex gap-4">
+          <div class="relative">
+            <input 
+              type="text" 
+              v-model="searchQuery" 
+              placeholder="搜索世界书..." 
+              class="bg-gray-700/60 rounded-sm border-2 border-gray-500/80 px-3 py-2 text-white transition-colors duration-200 focus:outline-none focus:bg-gray-700 w-48 text-sm"
+            />
+          </div>
+          <button @click.stop="isImportModalOpen = true" class="btn btn-secondary">导入默认</button>
+          <button @click="handleSyncAll" class="btn btn-secondary" :disabled="isSyncing">
+              <svg v-if="isSyncing" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <span>{{ isSyncing ? '同步中...' : '同步到 Google AI' }}</span>
+          </button>
+          <button @click="openModal('create')" class="btn btn-primary bg-yellow-600 hover:bg-yellow-500">创建新世界书</button>
+      </div>
+    </template>
     <ManagementLayout
       :is-loading="isLoading"
       :is-empty="!data?.items.length && !searchQuery"
-      @create="openModal('create')"
+      :is-contained="true"
     >
-      <template #title>// 世界书管理</template>
-      <template #create-button-content>
-        <div class="flex gap-4">
-            <div class="relative">
-              <input 
-                type="text" 
-                v-model="searchQuery" 
-                placeholder="搜索世界书..." 
-                class="bg-gray-700/60 rounded-sm border-2 border-gray-500/80 px-3 py-2 text-white transition-colors duration-200 focus:outline-none focus:bg-gray-700 w-48 text-sm"
-              />
-            </div>
-            <button @click.stop="isImportModalOpen = true" class="btn btn-secondary">导入默认</button>
-            <button @click="handleSyncAll" class="btn btn-secondary" :disabled="isSyncing">
-                <svg v-if="isSyncing" class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                <span>{{ isSyncing ? '同步中...' : '同步到 Google AI' }}</span>
-            </button>
-            <button class="btn btn-primary bg-yellow-600 hover:bg-yellow-500">创建新世界书</button>
-        </div>
-      </template>
-
       <div v-if="data?.items.length" class="space-y-2">
         <div 
           v-for="(item, index) in localOrderedWorlds" 
@@ -53,9 +52,9 @@
               <span class="font-semibold" :class="sessionActiveWorlds.includes(item.filename) ? 'text-yellow-300' : 'text-white'">{{ item.name }}</span>
             </label>
           </div>
-          <div v-if="item.is_private" class="flex items-center space-x-3 shrink-0 ml-4">
-            <button @click="openShareModal(item)" class="btn btn-secondary !px-3 !py-1 text-xs bg-indigo-600/20 hover:bg-indigo-500/30 border-indigo-500/50 text-indigo-300">分享</button>
-            <button @click="openModal('edit', item)" class="btn btn-secondary text-xs !px-3 !py-1">编辑</button>
+          <div class="flex items-center space-x-3 shrink-0 ml-4">
+            <button v-if="item.is_private" @click="openShareModal(item)" class="btn btn-secondary !px-3 !py-1 text-xs bg-indigo-600/20 hover:bg-indigo-500/30 border-indigo-500/50 text-indigo-300">分享</button>
+            <button v-if="item.is_private" @click="openModal('edit', item)" class="btn btn-secondary text-xs !px-3 !py-1">编辑</button>
             <button @click="handleDeleteWorldBook(item)" class="btn btn-danger text-xs !px-3 !py-1">删除</button>
           </div>
         </div>
@@ -95,7 +94,7 @@
       data-type="world_info"
       @close="sharingWorldBook = null"
     />
-  </div>
+  </CommonPageLayout>
 </template>
 
 <script setup lang="ts">
@@ -107,6 +106,7 @@ import { useDraggable } from '~/composables/useDraggable';
 import { storeToRefs } from 'pinia';
 import type { WorldInfo, Filename, Preset } from '~/types/api';
 import { usePaginatedData } from '~/composables/useAllData';
+import CommonPageLayout from '~/components/common/PageLayout.vue';
 import ManagementLayout from '~/components/common/ManagementLayout.vue';
 import WorldInfoModal from '~/components/world_info/WorldInfoModal.vue';
 import CommunityShareModal from '~/components/community/CommunityShareModal.vue';
@@ -142,7 +142,6 @@ const orderedWorldsComputed = computed(() => {
     const indexA = order.indexOf(a.filename);
     const indexB = order.indexOf(b.filename);
     if (indexA === -1 && indexB === -1) {
-      // [核心修复] 添加安全检查
       return (a.name || '').localeCompare(b.name || '');
     }
     if (indexA === -1) return 1;

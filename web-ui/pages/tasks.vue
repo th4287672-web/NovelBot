@@ -1,72 +1,68 @@
 <template>
-  <div class="h-full w-full p-6 flex flex_col">
-    <ManagementLayout
-      :is-loading="isLoading"
-      :is-empty="tasks.length === 0"
-      :is-contained="true"
-    >
-      <template #title>// 任务中心</template>
-      <template #create-button-content>
-        <button @click="fetchTasks" :disabled="isLoading" class="btn btn-secondary">
-          刷新列表
-        </button>
-      </template>
-      
-      <div v-if="tasks.length > 0" class="space-y-3 h-full overflow-y-auto pr-2">
-        <div 
-          v-for="task in tasks"
-          :key="task.id"
-        >
-          <template v-if="task.status">
-            <div
-              class="p-4 bg-gray-800/60 rounded-lg border-l-4"
-              :class="taskStatusStyles[task.status].border"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="font-semibold text-white">
-                    {{ taskTitles[task.task_type] || '未知任务' }}
-                  </p>
-                  <p class="text-xs text-gray-400 font-mono" :title="task.id">{{ task.id.substring(0, 8) }}</p>
-                </div>
-                <div class="text-right">
-                  <p class="text-sm font-semibold" :class="taskStatusStyles[task.status].text">
-                    {{ taskStatusText[task.status] }}
-                  </p>
-                  <p class="text-xs text-gray-500">
-                    {{ formatTimestamp(task.updated_at) }}
-                  </p>
-                </div>
-              </div>
-              <div v-if="task.status === 'processing'" class="mt-3">
-                <div class="w-full bg-gray-700 rounded-full h-2.5">
-                  <div class="bg-blue-500 h-2.5 rounded-full" :style="{ width: `${task.progress}%` }"></div>
-                </div>
-                <p class="text-xs text-blue-300 mt-1 text-right">{{ task.status_text }} ({{ task.progress }}%) - {{ getElapsedTime(task) }}</p>
-              </div>
-               <div v-if="task.status === 'failed' && task.error" class="mt-2 text-xs text-red-300 bg-red-900/20 p-2 rounded">
-                {{ task.error.error }}
-              </div>
-              
-              <div v-if="task.status === 'success' && task.result?.image_url" class="mt-3">
-                <img 
-                     :key="task.result.image_url"
-                     :src="task.result.image_url" 
-                     class="max-h-48 rounded-md cursor-pointer" 
-                     @click="previewImage(task.result.image_url)" />
-              </div>
-
-            </div>
-          </template>
+  <CommonPageLayout>
+    <template #title>// 任务中心</template>
+    <template #actions>
+      <button @click="fetchTasks" :disabled="isLoading" class="btn btn-secondary">
+        刷新列表
+      </button>
+    </template>
+    <div class="h-full w-full">
+      <main class="h-full overflow-y-auto pr-2">
+        <div v-if="isLoading" class="flex items-center justify-center h-full">
+          <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500"></div>
         </div>
-      </div>
-
-       <template #empty-state>
-        <p class="text-gray-400 text-lg">没有任务记录。</p>
-        <p class="text-gray-500 mt-2">当您执行耗时操作时，任务会出现在这里。</p>
-      </template>
-    </ManagementLayout>
-  </div>
+        <div v-else-if="tasks.length === 0" class="text-center py-20 text-gray-500">
+          <p class="text-lg">没有任务记录。</p>
+          <p class="mt-2">当您执行耗时操作时，任务会出现在这里。</p>
+        </div>
+        <div v-else class="space-y-3">
+          <div v-for="task in tasks" :key="task.id">
+            <div v-if="task.status">
+              <div
+                class="p-4 bg-gray-800/60 rounded-lg border-l-4"
+                :class="taskStatusStyles[task.status].border"
+              >
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="font-semibold text-white">
+                      {{ taskTitles[task.task_type] || '未知任务' }}
+                    </p>
+                    <p class="text-xs text-gray-400 font-mono" :title="task.id">{{ task.id.substring(0, 8) }}</p>
+                  </div>
+                  <div class="text-right">
+                    <p class="text-sm font-semibold" :class="taskStatusStyles[task.status].text">
+                      {{ taskStatusText[task.status] }}
+                    </p>
+                    <p class="text-xs text-gray-500">
+                      {{ formatTimestamp(task.updated_at) }}
+                    </p>
+                  </div>
+                </div>
+                <div v-if="task.status === 'processing'" class="mt-3">
+                  <div class="w-full bg-gray-700 rounded-full h-2.5">
+                    <div class="bg-blue-500 h-2.5 rounded-full" :style="{ width: `${task.progress}%` }"></div>
+                  </div>
+                  <p class="text-xs text-blue-300 mt-1 text-right">{{ task.status_text }} ({{ task.progress }}%) - {{ getElapsedTime(task) }}</p>
+                </div>
+                <div v-if="task.status === 'failed' && task.error" class="mt-2 text-xs text-red-300 bg-red-900/20 p-2 rounded">
+                  {{ task.error.error }}
+                </div>
+                <div v-if="task.status === 'success' && task.result?.image_url" class="mt-3">
+                  <img 
+                       :key="getResourceUrl({ image: task.result.image_url }) || task.id"
+                       :src="getResourceUrl({ image: task.result.image_url })!"
+                       class="max-h-48 rounded-md cursor-pointer" 
+                       @click="previewImage(getResourceUrl({ image: task.result.image_url })!)"
+                       :alt="`Task ${task.id} result`"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </CommonPageLayout>
 </template>
 
 <script setup lang="ts">
@@ -75,7 +71,12 @@ import { apiService } from '~/services/api';
 import { useSettingsStore } from '~/stores/settings';
 import { useUIStore } from '~/stores/ui';
 import type { TaskStatusResponse } from '~/types/api';
-import ManagementLayout from '~/components/common/ManagementLayout.vue';
+import { getResourceUrl } from '~/utils/urlBuilder';
+import CommonPageLayout from '~/components/common/PageLayout.vue';
+
+useHead({
+  title: '任务中心 - MyNovelBot',
+});
 
 const settingsStore = useSettingsStore();
 const uiStore = useUIStore();

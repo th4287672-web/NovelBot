@@ -1,28 +1,28 @@
 <template>
-  <div class="h-full w-full">
+  <CommonPageLayout>
+    <template #title>// AI 预设管理</template>
+    <template #actions>
+      <div class="flex gap-4">
+          <div class="relative">
+            <input 
+              type="text" 
+              v-model="searchQuery" 
+              placeholder="搜索预设..." 
+              class="bg-gray-700/60 rounded-sm border-2 border-gray-500/80 px-3 py-2 text-white transition-colors duration-200 focus:outline-none focus:bg-gray-700 w-48 text-sm"
+            />
+          </div>
+          <input type="file" ref="fileInputRef" @change="handleFileSelected" accept=".json" class="hidden" />
+          <button @click="triggerFileInput" class="btn btn-secondary">从文件导入</button>
+          <button @click.stop="isImportModalOpen = true" class="btn btn-secondary">导入默认</button>
+          <button @click="isCreateModalOpen = true" class="btn btn-primary bg-green-600 hover:bg-green-500">创建新预设</button>
+      </div>
+    </template>
+
     <ManagementLayout
       :is-loading="isLoading"
       :is-empty="filteredPresets.length === 0 && !searchQuery"
-      @create="isCreateModalOpen = true"
+      :is-contained="true"
     >
-      <template #title>// AI 预设管理</template>
-      <template #create-button-content>
-        <div class="flex gap-4">
-            <div class="relative">
-              <input 
-                type="text" 
-                v-model="searchQuery" 
-                placeholder="搜索预设..." 
-                class="bg-gray-700/60 rounded-sm border-2 border-gray-500/80 px-3 py-2 text-white transition-colors duration-200 focus:outline-none focus:bg-gray-700 w-48 text-sm"
-              />
-            </div>
-            <input type="file" ref="fileInputRef" @change="handleFileSelected" accept=".json" class="hidden" />
-            <button @click="triggerFileInput" class="btn btn-secondary">从文件导入</button>
-            <button @click.stop="isImportModalOpen = true" class="btn btn-secondary">导入默认</button>
-            <button class="btn btn-primary bg-green-600 hover:bg-green-500">创建新预设</button>
-        </div>
-      </template>
-      
       <div v-if="filteredPresets.length > 0"
         class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
       >
@@ -63,7 +63,6 @@
             />
         </div>
       </template>
-
     </ManagementLayout>
 
     <PresetsPresetEditModal
@@ -96,8 +95,7 @@
       data-type="preset"
       @close="sharingPreset = null"
     />
-
-  </div>
+  </CommonPageLayout>
 </template>
 
 <script setup lang="ts">
@@ -109,6 +107,7 @@ import { useDisplayOrderMutation } from '~/composables/useDataMutations';
 import { useDraggable } from '~/composables/useDraggable';
 import type { Preset, BackendPreset, Filename } from '~/types/api';
 import { usePaginatedData } from '~/composables/useAllData';
+import CommonPageLayout from '~/components/common/PageLayout.vue';
 import ManagementLayout from '~/components/common/ManagementLayout.vue';
 import { useUIStore } from '~/stores/ui';
 import CommunityShareModal from '~/components/community/CommunityShareModal.vue';
@@ -149,7 +148,6 @@ const orderedPresetsComputed = computed(() => {
     if (indexA === -1 && indexB === -1) {
       if (a.is_private && !b.is_private) return -1;
       if (!a.is_private && b.is_private) return 1;
-      // [核心修复] 添加安全检查
       return (a.displayName || '').localeCompare(b.displayName || '');
     }
     if (indexA === -1) return 1;

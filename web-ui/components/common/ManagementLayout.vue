@@ -1,16 +1,13 @@
 <template>
   <div 
     :class="[
-      'flex flex-col text-white',
-      isContained 
-        ? 'h-full' // 在 flex 容器中时，撑满高度
-        : 'absolute inset-0 p-6 bg-gray-900' // 默认行为，覆盖整个页面
+      'flex flex-col text-white h-full',
+      !isContained && 'p-6 bg-gray-900'
     ]"
   >
-    
     <header 
-      class="flex justify-between items-center shrink-0"
-      :class="{ 'mb-6': !isContained }"
+      v-if="!isContained"
+      class="flex justify-between items-center shrink-0 mb-6"
     >
       <h1 class="text-2xl font-bold">
         <slot name="title">管理页面</slot>
@@ -22,7 +19,10 @@
       </div>
     </header>
     
-    <main class="flex-grow overflow-y-auto min-h-0 mt-6" :class="{'pr-2 -mr-2': !isContained}">
+    <main 
+      class="flex-grow overflow-y-auto min-h-0"
+      :class="{ 'mt-6': !isContained, 'pr-2 -mr-2': !isContained }"
+    >
       <div v-if="isLoading" class="flex items-center justify-center h-full">
         <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-cyan-500"></div>
       </div>
@@ -39,7 +39,7 @@
       </div>
     </main>
 
-    <footer v-if="!isLoading && !isEmpty" class="shrink-0 pt-4">
+    <footer v-if="!isLoading && !isEmpty && !isContained" class="shrink-0 pt-4">
         <slot name="footer"></slot>
     </footer>
   </div>
