@@ -27,7 +27,8 @@ web-ui/.output/
 web-ui/dist-stable/
 web-ui/dist/
 resources/
-
+tools/flattened_export_20250913_152003/
+tools/legacy_backup/
 # 运行时数据与日志
 novel_bot/logs/
 AI_Dev_Team/logs/
